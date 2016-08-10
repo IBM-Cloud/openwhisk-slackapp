@@ -24,7 +24,7 @@ From the perspective of the developer of the Slack app, there is no server invol
 only OpenWhisk actions and an API in API Connect. Furthermore the code is not running
 if no user interacts with app and if the app gets popular, it will benefit from OpenWhisk scalability.
 
-![Architecture](//g.gravizo.com/g?
+![Architecture](https://g.gravizo.com/g?
   digraph G {
     node [fontname = "helvetica"]
     rankdir=LR
