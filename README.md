@@ -16,13 +16,13 @@ Built using IBM Bluemix, the app uses:
 * API Connect - to expose the OpenWhisk actions to Slack
 * and Slack Events API.
 
-When a user installs the app, or interacts with a bot user, or uses a custom command, Slack calls the app implementation.
-It talks to an API deployed with API Connect.
+When a user installs the app in a Slack team, or interacts with a bot user, or uses a custom command, Slack calls the app implementation.
+Slack will talk to an API deployed with API Connect.
 In turn this API will invoke OpenWhisk actions.
 
 From the perspective of the developer of the Slack app, there is no server involved:
 only OpenWhisk actions and an API in API Connect. Furthermore the code is not running
-if no user interacts with app and if the app gets popular, it will benefit from OpenWhisk scalability.
+if no user interacts with the app and if the app gets popular, it will benefit from OpenWhisk scalability.
 
 ![Architecture](https://g.gravizo.com/g?
   digraph G {
@@ -44,7 +44,7 @@ if no user interacts with app and if the app gets popular, it will benefit from 
   }
 )
 
-We will:
+In this sample, we will:
 * prepare the OpenWhisk environment, creating the actions implementing our Slack app,
 * create the Slack app in Slack,
 * expose our OpenWhisk actions with API Connect,
