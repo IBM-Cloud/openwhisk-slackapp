@@ -143,7 +143,7 @@ Our OpenWhisk actions are ready.
 
 1. Type a name for your app, a short description, a long description. Leave other fields empty.
 
-  ![](xdocs/new-app.png)
+  ![](xdocs/app-new.png)
 
 1. Click Create
 
@@ -153,13 +153,13 @@ Our OpenWhisk actions are ready.
 
 1. Go to the **Bot Users** section of your app
 
-  ![](xdocs/add-bot.png)
+  ![](xdocs/app-addbot.png)
 
 1. Click **Add a bot to this app**
 
 1. Name your bot and click **Add bot user**
 
-  ![](xdocs/bot-name.png)
+  ![](xdocs/app-botname.png)
   
 ### Add an Event Subscription
 
