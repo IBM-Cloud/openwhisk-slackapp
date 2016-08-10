@@ -201,7 +201,7 @@ specifically the App Credentials (client ID, client secret and verification toke
 
   ![](xdocs/apiconnect-switch-to-draft.png)
 
-1. Import OpenAPI
+1. Import the app API into API Connect
 
   ![](xdocs/apiconnect-drafts-import-openapi.png)
 
@@ -247,15 +247,15 @@ specifically the App Credentials (client ID, client secret and verification toke
 
   ![](xdocs/apiconnect-generatesandbox.png)
 
-1. View the API published in the Sandbox
-
-  ![](xdocs/apiconnect-apipublished.png)
-
 1. Go to the API Connect dashboard
 
   ![](xdocs/apiconnect-findendpoint.png)
 
 1. Select the Sandbox catalog. The Sandbox is a default catalog where we published the API.
+
+1. View the API published in the Sandbox
+
+  ![](xdocs/apiconnect-apipublished.png)
 
 1. Select the Settings
 
@@ -403,9 +403,9 @@ Our app is finally ready to be installed!
 
 | File | Description |
 | ---- | ----------- |
-|[**actions/slackapp-register.js**](slackapp-register.js)|Handles the installation of the app in a team. It stores the authorization token in Cloudant for future use by the bot and commands.|
-|[**actions/slackapp-event.js**](slackapp-event.js)|Handles events triggered by the Events API. In this sample, it handles messages sent to the bot user and simply echoes the message sent by the user.|
-|[**actions/slackapp-command.js**](slackapp-command.js)|Handles custom commands. In this sample, it echoes the command parameters.|
+|[**slackapp-register.js**](actions/slackapp-register.js)|Handles the installation of the app in a team. It stores the authorization token in Cloudant for future use by the bot and commands.|
+|[**slackapp-event.js**](actions/slackapp-event.js)|Handles events triggered by the Events API. In this sample, it handles messages sent to the bot user and simply echoes the message sent by the user.|
+|[**slackapp-command.js**](actions/slackapp-command.js)|Handles custom commands. In this sample, it echoes the command parameters.|
 
 ### API Connect - API
 
@@ -414,7 +414,7 @@ You don't need to install this kit to deploy or update the sample.
 
 | File | Description |
 | ---- | ----------- |
-|[**api/definitions/openwhisk-slackapp-api.yaml**](openwhisk-slackapp-api.yaml)|Declares 3 operations called by the Slack app.|
+|[**openwhisk-slackapp-api.yaml**](api/definitions/openwhisk-slackapp-api.yaml)|Declares 3 operations called by the Slack app.|
 
 API Connect is key in the sample as it provides the gateway between our Slack app and our OpenWhisk actions implementing the app.
 
