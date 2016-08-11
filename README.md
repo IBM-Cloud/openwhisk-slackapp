@@ -137,7 +137,7 @@ in `local.env` to the corresponding value (url).
 
 #### Windows
 
-1. Copy the file named **template.local.cmd** into **local.env**
+1. Copy the file named **template.local.cmd** into **local.cmd**
 
   ```
   copy template.local.cmd local.cmd
