@@ -94,10 +94,12 @@ With these steps we will deploy the actions implementing our Slack app.
   
 ### Deploy OpenWhisk Actions
 
-1. Copy the file named **template-local.env** into **local.env**
+#### Linux, OS X
+
+1. Copy the file named **template.local.env** into **local.env**
 
   ```
-  cp template-local.env local.env
+  cp template.local.env local.env
   ```
 
 1. Get the service credentials for the Cloudant service created above and set CLOUDANT_url
@@ -133,6 +135,47 @@ in `local.env` to the corresponding value (url).
   *--update* the artifacts if you change the action code, or simply with *--env*
   to show the environment variables set in **local.env**.
 
+#### Windows
+
+1. Copy the file named **template.local.cmd** into **local.env**
+
+  ```
+  copy template.local.cmd local.cmd
+  ```
+
+1. Get the service credentials for the Cloudant service created above and set CLOUDANT_url
+in `local.cmd` to the corresponding value (url).
+
+1. Ensure your OpenWhisk command line interface is property configured with:
+
+  ```
+  wsk list
+  ```
+  
+  This shows the packages, actions, triggers and rules currently deployed in your OpenWhisk namespace.
+
+1. Create the actions:
+
+  ```
+  deploy.cmd --install
+  ```
+
+  If all goes well it outputs:
+  
+  ```
+  whisk namespace       <the-namespace-where-the-actions-are-deployed>.
+  Adding app registration command
+  ok: created action slackapp-register
+  Adding app event processing
+  ok: created action slackapp-event
+  Adding app command processing
+  ok: created action slackapp-command
+  ```
+
+  Note: the script can also be used to *--uninstall* the OpenWhisk artifacts to
+  *--update* the artifacts if you change the action code, or simply with *--env*
+  to show the environment variables set in **local.cmd**.
+  
 Our OpenWhisk actions are ready.
 
 ## Create the Slack app
