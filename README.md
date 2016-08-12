@@ -440,7 +440,7 @@ Our app is finally ready to be installed!
 
 | File | Description |
 | ---- | ----------- |
-|[**deploy.sh**](deploy.sh)|Helper script to install, uninstall, update the OpenWhisk actions.|
+|[**deploy.cmd**](deploy.cmd)<br/>[**deploy.sh**](deploy.sh)|Helper script to install, uninstall, update the OpenWhisk actions.|
 
 ### OpenWhisk - Actions
 
