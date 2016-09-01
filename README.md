@@ -103,7 +103,7 @@ With these steps we will deploy the actions implementing our Slack app.
   ```
 
 1. Get the service credentials for the Cloudant service created above and set CLOUDANT_url
-in `local.env` to the corresponding value (url).
+in `local.env` to the corresponding value (url). Make sure you take the full url including the username and password https://username:password@hostname.cloudant.com.
 
 1. Ensure your OpenWhisk command line interface is property configured with:
 
@@ -144,7 +144,7 @@ in `local.env` to the corresponding value (url).
   ```
 
 1. Get the service credentials for the Cloudant service created above and set CLOUDANT_url
-in `local.cmd` to the corresponding value (url).
+in `local.cmd` to the corresponding value (url). Make sure you take the full url including the username and password https://username:password@hostname.cloudant.com.
 
 1. Ensure your OpenWhisk command line interface is property configured with:
 
