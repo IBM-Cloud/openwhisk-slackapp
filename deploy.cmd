@@ -3,13 +3,13 @@ SETLOCAL
 
 rem #
 rem # Copyright 2016 IBM Corp. All Rights Reserved.
-rem # 
+rem #
 rem # Licensed under the Apache License, Version 2.0 (the “License”);
 rem # you may not use this file except in compliance with the License.
 rem # You may obtain a copy of the License at
-rem # 
+rem #
 rem #  https://www.apache.org/licenses/LICENSE-2.0
-rem # 
+rem #
 rem # Unless required by applicable law or agreed to in writing, software
 rem # distributed under the License is distributed on an “AS IS” BASIS,
 rem # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -18,8 +18,6 @@ rem # limitations under the License.
 
 rem # load configuration variables
 @CALL local.cmd
-
-wsk property get --namespace
 
 IF "%1"=="--install" (
   CALL :install
@@ -55,7 +53,7 @@ ECHO Removing actions...
 wsk action delete slackapp-register
 wsk action delete slackapp-command
 wsk action delete slackapp-event
-  
+
 ECHO Done
 wsk list
 EXIT /B 0

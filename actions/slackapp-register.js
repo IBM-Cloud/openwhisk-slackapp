@@ -21,81 +21,81 @@ function main(args) {
   console.log(args);
 
   // connect to the Cloudant database
-  var nano = require("nano")(args.cloudantUrl);
-  var botsDb = nano.use(args.cloudantDb);
+  var cloudant = require("cloudant")({url: args.cloudantUrl});
+  var botsDb = cloudant.use(args.cloudantDb);
 
-  async.waterfall([
-    // find previous registrations for this team
-    function (callback) {
-      console.log("Looking for previous registrations for the team", args.registration.team_id);
-      botsDb.view("bots", "by_team_id", {
-        keys: [args.registration.team_id],
-        include_docs: true
-      }, function (err, body) {
-        if (err) {
-          callback(err);
-        } else {
-          callback(null, body.rows);
-        }
-      });
-    },
-    // delete them all
-    function (rows, callback) {
-      console.log("Removing previous registrations for the team", args.registration.team_id, rows);
-      var toBeDeleted = {
-        docs: rows.map(function (row) {
-          return {
-            _id: row.doc._id,
-            _rev: row.doc._rev,
-            _deleted: true
+  return new Promise(function(resolve, reject) {
+    async.waterfall([
+      // find previous registrations for this team
+      function (callback) {
+        console.log("Looking for previous registrations for the team", args.registration.team_id);
+        botsDb.view("bots", "by_team_id", {
+          keys: [args.registration.team_id],
+          include_docs: true
+        }, function (err, body) {
+          if (err) {
+            callback(err);
+          } else {
+            callback(null, body.rows);
           }
-        })
-      };
-      if (rows.length > 0) {
-        botsDb.bulk(toBeDeleted, function (err, result) {
+        });
+      },
+      // delete them all
+      function (rows, callback) {
+        console.log("Removing previous registrations for the team", args.registration.team_id, rows);
+        var toBeDeleted = {
+          docs: rows.map(function (row) {
+            return {
+              _id: row.doc._id,
+              _rev: row.doc._rev,
+              _deleted: true
+            }
+          })
+        };
+        if (rows.length > 0) {
+          botsDb.bulk(toBeDeleted, function (err, result) {
+            callback(err);
+          });
+        } else {
+          callback(null);
+        }
+      },
+      // register the bot
+      function (callback) {
+        console.log("Registering the bot for the team", args.registration.team_id);
+        botsDb.insert({
+          _id: args.registration.team_id,
+          type: "bot-registration",
+          registration: args.registration
+        }, function (err, bot) {
+          console.log("Registered bot", bot);
+          callback(err, args.registration);
+        });
+      },
+      // mark as active
+      function (registration, callback) {
+        console.log("Marking the bot as active");
+        request({
+          url: "https://slack.com/api/users.setActive",
+          method: "POST",
+          form: {
+            token: registration.bot.bot_access_token
+          }
+        }, function (err, response, body) {
+          if (!err) {
+            console.log("Bot is active!");
+          }
           callback(err);
         });
-      } else {
-        callback(null);
       }
-    },
-    // register the bot
-    function (callback) {
-      console.log("Registering the bot for the team", args.registration.team_id);
-      botsDb.insert({
-        _id: args.registration.team_id,
-        type: "bot-registration",
-        registration: args.registration
-      }, function (err, bot) {
-        console.log("Registered bot", bot);
-        callback(err, args.registration);
-      });
-    },
-    // mark as active
-    function (registration, callback) {
-      console.log("Marking the bot as active");
-      request({
-        url: "https://slack.com/api/users.setActive",
-        method: "POST",
-        form: {
-          token: registration.bot.bot_access_token
-        }
-      }, function (err, response, body) {
-        if (!err) {
-          console.log("Bot is active!");
-        }
-        callback(err);
-      });
-    }
-  ], function (err, result) {
-    if (err) {
-      whisk.error(err);
-    } else {
-      whisk.done({
-        status: "Registered"
-      }, null);
-    }
+    ], function (err, result) {
+      if (err) {
+        reject(err);
+      } else {
+        resolve({
+          status: "Registered"
+        });
+      }
+    });
   });
-
-  return whisk.async();
 }

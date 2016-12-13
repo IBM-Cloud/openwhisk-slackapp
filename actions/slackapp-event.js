@@ -71,61 +71,62 @@ function main(args) {
   console.log("Processing new bot event from Slack", args);
 
   // connect to the Cloudant database
-  var nano = require("nano")(args.cloudantUrl);
-  var botsDb = nano.use(args.cloudantDb);
+  var cloudant = require("cloudant")({url: args.cloudantUrl});
+  var botsDb = cloudant.use(args.cloudantDb);
 
   // get the event to process
   var event = args.event;
 
-  async.waterfall([
-    // find the token for this bot
-    function (callback) {
-        console.log("Looking up bot info for team", event.team_id);
-        botsDb.view("bots", "by_team_id", {
-          keys: [event.team_id],
-          limit: 1,
-          include_docs: true
-        }, function (err, body) {
-          if (err) {
-            callback(err);
-          } else if (body.rows && body.rows.length > 0) {
-            callback(null, body.rows[0].doc.registration)
-          } else {
-            callback("team not found");
-          }
-        });
-    },
-    // grab info about the user
-    function (registration, callback) {
-        console.log("Looking up user info for user", event.event.user);
-        usersInfo(registration.bot.bot_access_token, event.event.user, function (err, user) {
-          callback(err, registration, user);
-        });
-    },
-    // reply to the message
-    function (registration, user, callback) {
-        console.log("Processing message from", user.name);
-        if (event.event.type === "message") {
-          postMessage(registration.bot.bot_access_token, event.event.channel,
-            "Hey " + user.real_name + ", you said " + event.event.text,
-            function (err, result) {
+  return new Promise(function(resolve, reject) {
+    async.waterfall([
+      // find the token for this bot
+      function (callback) {
+          console.log("Looking up bot info for team", event.team_id);
+          botsDb.view("bots", "by_team_id", {
+            keys: [event.team_id],
+            limit: 1,
+            include_docs: true
+          }, function (err, body) {
+            if (err) {
               callback(err);
-            });
+            } else if (body.rows && body.rows.length > 0) {
+              callback(null, body.rows[0].doc.registration)
+            } else {
+              callback("team not found");
+            }
+          });
+      },
+      // grab info about the user
+      function (registration, callback) {
+          console.log("Looking up user info for user", event.event.user);
+          usersInfo(registration.bot.bot_access_token, event.event.user, function (err, user) {
+            callback(err, registration, user);
+          });
+      },
+      // reply to the message
+      function (registration, user, callback) {
+          console.log("Processing message from", user.name);
+          if (event.event.type === "message") {
+            postMessage(registration.bot.bot_access_token, event.event.channel,
+              "Hey " + user.real_name + ", you said " + event.event.text,
+              function (err, result) {
+                callback(err);
+              });
+          } else {
+            callback(null);
+          }
+        }
+      ],
+      function (err, result) {
+        if (err) {
+          console.log("Error", err);
+          reject(err);
         } else {
-          callback(null);
+          resolve({
+            status: "Registered"
+          });
         }
       }
-    ],
-    function (err, result) {
-      if (err) {
-        console.log("Error", err);
-        whisk.error(err);
-      } else {
-        whisk.done({
-          status: "Registered"
-        }, null);
-      }
-    });
-
-  return whisk.async();
+    );
+  });
 }
