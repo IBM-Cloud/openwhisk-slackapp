@@ -7,7 +7,7 @@ and how to expose these actions with API Connect.
   <img src="xdocs/app-created.png" width="200"/>
   <img src="xdocs/team-botchat.png" width="200"/>
   <img src="xdocs/team-customcommandoutput.png" width="200"/>
-  
+
 ## Overview
 
 Built using IBM Bluemix, the app uses:
@@ -72,7 +72,7 @@ With these steps we will deploy the actions implementing our Slack app.
   ```
   git clone https://github.com/IBM-Bluemix/openwhisk-slackapp.git
   ```
-  
+
 * or Download and extract the source code from
 [this archive](https://github.com/IBM-Bluemix/openwhisk-slackapp/archive/master.zip)
 
@@ -91,7 +91,7 @@ With these steps we will deploy the actions implementing our Slack app.
 1. Replace the default JSON with the content of the file [cloudant-designs.json](cloudant-designs.json)
 
   ![](xdocs/cloudant-adddesigndoc.png)
-  
+
 ### Deploy OpenWhisk Actions
 
 #### Linux, OS X
@@ -110,7 +110,7 @@ in `local.env` to the corresponding value (url). Make sure you take the full url
   ```
   wsk list
   ```
-  
+
   This shows the packages, actions, triggers and rules currently deployed in your OpenWhisk namespace.
 
 1. Create the actions:
@@ -120,7 +120,7 @@ in `local.env` to the corresponding value (url). Make sure you take the full url
   ```
 
   If all goes well it outputs:
-  
+
   ```
   Current namespace is <the-namespace-where-the-actions-are-deployed>.
   Adding app registration command
@@ -151,7 +151,7 @@ in `local.cmd` to the corresponding value (url). Make sure you take the full url
   ```
   wsk list
   ```
-  
+
   This shows the packages, actions, triggers and rules currently deployed in your OpenWhisk namespace.
 
 1. Create the actions:
@@ -161,7 +161,7 @@ in `local.cmd` to the corresponding value (url). Make sure you take the full url
   ```
 
   If all goes well it outputs:
-  
+
   ```
   whisk namespace       <the-namespace-where-the-actions-are-deployed>.
   Adding app registration command
@@ -175,7 +175,7 @@ in `local.cmd` to the corresponding value (url). Make sure you take the full url
   Note: the script can also be used to *--uninstall* the OpenWhisk artifacts to
   *--update* the artifacts if you change the action code, or simply with *--env*
   to show the environment variables set in **local.cmd**.
-  
+
 Our OpenWhisk actions are ready.
 
 ## Create the Slack app
@@ -184,9 +184,7 @@ Our OpenWhisk actions are ready.
 
 1. Proceed to the [new app creation](https://api.slack.com/apps/new)
 
-1. Type a name for your app, a short description, a long description. Leave other fields empty.
-
-  ![](xdocs/app-new.png)
+1. Type a name for your app, select your Slack team.
 
 1. Click Create
 
@@ -198,12 +196,12 @@ Our OpenWhisk actions are ready.
 
   ![](xdocs/app-addbot.png)
 
-1. Click **Add a bot to this app**
+1. Click **Add a Bot User**
 
-1. Name your bot and click **Add bot user**
+1. Name your bot and click **Add Bot User**
 
   ![](xdocs/app-botname.png)
-  
+
 ### Add an Event Subscription
 
 1. Go to the **Event Subscriptions** section of your app
@@ -213,7 +211,7 @@ Our OpenWhisk actions are ready.
 1. Add a new Bot User Event for **message.im**
 
   ![](xdocs/app-addbotevent.png)
-  
+
   This allows us to react to direct messages sent to a bot.
   We could select more event type but for our simple app will only deal with this one today.
 
@@ -244,7 +242,7 @@ specifically the App Credentials (client ID, client secret and verification toke
 
   ![](xdocs/apiconnect-switch-to-draft.png)
 
-1. Import the app API into API Connect
+1. Import an existing OpenAPI into API Connect
 
   ![](xdocs/apiconnect-drafts-import-openapi.png)
 
@@ -263,23 +261,23 @@ specifically the App Credentials (client ID, client secret and verification toke
 1. Select the Properties section
 
   ![](xdocs/apiconnect-api-properties.png)
-  
+
   1. Set the OpenWhisk username and OpenWhisk password.
   You can find these credentials by running ```wsk property get```
   and looking at the whisk auth property.
   Everything before the **:** is your username, everything after is the password.
-  
+
   ![](xdocs/apiconnect-api-setproperty.png)
 
   1. Set the OpenWhisk namespace where the actions where deployed.
   Find it with ```wsk property get --namespace```
-  
+
   1. Set the Slack Client ID. Find it in the **App Credentials** in Slack.
-  
+
   1. Set the Slack Client Secret. Find it in the **App Credentials** in Slack.
-  
+
   1. Set the Slack Verification Token. Find it in the **App Credentials** in Slack.
-  
+
 1. Save the API Definition using the Save icon in top right corner.
 
 1. Generate a default product from this API.
@@ -312,7 +310,7 @@ specifically the App Credentials (client ID, client secret and verification toke
 
 ### Set the callback URL for authentication
 
-1. Under App Credentials, add the URI for the authentication of your app.
+1. Under OAuth and Permissions, add the URI for the authentication of your app.
 This URI will be called when a user installs your application in his team.
 The value is the API Endpoint Base URL (retrieved earlier)
 followed by /api/slack/oauth such as:
@@ -322,7 +320,7 @@ followed by /api/slack/oauth such as:
   ```
 
   ![](xdocs/app-setoauth.png)
-  
+
 1. Click **Save Changes**
 
 ### Set the callback URL to receive events
@@ -342,11 +340,9 @@ API Endpoint Base URL followed by /api/slack/event. Such as:
 
   ![](xdocs/app-enableeventsub.png)
 
-1. Save Changes
-
 ### Create a new command
 
-1. Under Slash Commands, **Create new command**
+1. Under Slash Commands, **Create New Command**
 
   ![](xdocs/app-newcommand.png)
 
@@ -355,13 +351,13 @@ API Endpoint Base URL followed by /api/slack/event. Such as:
   1. Command: **/myserverlessapp**
 
   1. Request URL: API Endpoint Base URL followed by /api/slack/command such as:
-  
+
     ```
     https://api.us.apiconnect.ibmcloud.com/yourorg-yourspace/sb/api/slack/command
     ```
-  
+
   1. Short Description: **A test command**
-  
+
   1. Usage Hint: **[param1] [param2]**
 
   ![](xdocs/app-commandsettings.png)
@@ -379,17 +375,19 @@ Our app is finally ready to be installed!
   ```
 
   Leave it running. Actions triggered by Slack will show up there
-  
+
 1. Go to [Slack Add Button page](https://api.slack.com/docs/slack-button)
 
 1. Scroll down to the **Add the Slack button** section
 
 1. Pick you app from the dropdown list
 
-1. Uncheck incoming webhook, check commands and bot
+1. **Uncheck incoming webhook**
+
+1. **Check commands and bot**
 
   ![](xdocs/app-addtoslack.png)
-  
+
 1. Press **Add to Slack**
 
 1. Select your team
@@ -402,12 +400,12 @@ Our app is finally ready to be installed!
 
   After a few seconds, the app is installed. You should see logs appearing in the OpenWhisk activation
   polling as Slack will be sending the registration info we will use later to interact with Slack channels and users.
-  
+
   ![](xdocs/app-installsuccess.png)
 
   This is a response coming from our API Connect flow.
   Ideally you would redirect to another page once the registration is completed.
-  
+
 ## Test the integration
 
 1. Go into your team in Slack
@@ -415,11 +413,11 @@ Our app is finally ready to be installed!
 1. Send a direct message to our new bot friend
 
   ![](xdocs/team-newbot.png)
-  
+
   Note: you will notice the bot appears offline.
   This is a current issue with Slack when using the new Events API.
   [The Slack team is aware and working on a fix](https://twitter.com/l2fprod/status/762649353601318912).
-  
+
   ![](xdocs/team-startchatwithbot.png)
 
 1. The bot replies
@@ -480,14 +478,14 @@ It defines 3 operations:
   * The **ignore myself** filters bot_message. It is a shortcut for this app to not have to deal with its own message or messages from other integrations.
   * The **set-event** invokes the event processing action but first it checks if the event token is the verification token issued by Slack.
   * Other events are ignored.
-  
+
 * **POST /slack/command**
 
   * Called by Slack when someone triggers a custom command
   * Slack posts the command arguments as *application/x-www-form-urlencoded*.
   * **form-to-json** converts the form parameters to a JSON object for consumption by the remaining flow.
   * after checking the token, the command processing action is invoked.
-  
+
 ## Contribute
 
 Please create a pull request with your desired changes.
