@@ -57,7 +57,7 @@ x-ibm-configuration:
                     username: $(openwhiskUsername)
                     password: $(openwhiskPassword)
                     target-url: >-
-                      https://openwhisk.ng.bluemix.net/api/v1/namespaces/$(openwhiskNamespace)/actions/slackapp-register?blocking=true
+                      https://openwhisk.ng.bluemix.net/api/v1/namespaces/_/actions/slackapp-register?blocking=true
                 - gatewayscript:
                     title: set-response
                     source: |-
@@ -113,7 +113,7 @@ x-ibm-configuration:
                               cache-response: protocol
                               cache-ttl: 900
                               target-url: >-
-                                https://openwhisk.ng.bluemix.net/api/v1/namespaces/$(openwhiskNamespace)/actions/slackapp-event
+                                https://openwhisk.ng.bluemix.net/api/v1/namespaces/_/actions/slackapp-event
                               username: $(openwhiskUsername)
                               password: $(openwhiskPassword)
                           - gatewayscript:
@@ -177,7 +177,7 @@ x-ibm-configuration:
                     cache-response: protocol
                     cache-ttl: 900
                     target-url: >-
-                      https://openwhisk.ng.bluemix.net/api/v1/namespaces/$(openwhiskNamespace)/actions/slackapp-command
+                      https://openwhisk.ng.bluemix.net/api/v1/namespaces/_/actions/slackapp-command
                     username: $(openwhiskUsername)
                     password: $(openwhiskPassword)
                 - gatewayscript:
@@ -203,12 +203,6 @@ x-ibm-configuration:
       description: >-
         Your OpenWhisk password. It can be obtained by looking at the output of
         "wsk property get --auth". It is the part after the semi-colon.
-      encoded: false
-    openwhiskNamespace:
-      value: NAMESPACE
-      description: >-
-        The namespace where the actions were deployed. It can be obtained by
-        looking at the output of "wsk property get --namespace".
       encoded: false
     slackClientId:
       value: CLIENT ID

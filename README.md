@@ -122,7 +122,6 @@ in `local.env` to the corresponding value (url). Make sure you take the full url
   If all goes well it outputs:
 
   ```
-  Current namespace is <the-namespace-where-the-actions-are-deployed>.
   Adding app registration command
   ok: created action slackapp-register
   Adding app event processing
@@ -163,7 +162,6 @@ in `local.cmd` to the corresponding value (url). Make sure you take the full url
   If all goes well it outputs:
 
   ```
-  whisk namespace       <the-namespace-where-the-actions-are-deployed>.
   Adding app registration command
   ok: created action slackapp-register
   Adding app event processing
@@ -268,9 +266,6 @@ specifically the App Credentials (client ID, client secret and verification toke
   Everything before the **:** is your username, everything after is the password.
 
   ![](xdocs/apiconnect-api-setproperty.png)
-
-  1. Set the OpenWhisk namespace where the actions where deployed.
-  Find it with ```wsk property get --namespace```
 
   1. Set the Slack Client ID. Find it in the **App Credentials** in Slack.
 
