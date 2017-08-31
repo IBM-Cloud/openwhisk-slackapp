@@ -108,7 +108,7 @@ in `local.env` to the corresponding value (url). Make sure you take the full url
 1. Ensure your OpenWhisk command line interface is property configured with:
 
   ```
-  wsk list
+  bx wsk list
   ```
 
   This shows the packages, actions, triggers and rules currently deployed in your OpenWhisk namespace.
@@ -148,7 +148,7 @@ in `local.cmd` to the corresponding value (url). Make sure you take the full url
 1. Ensure your OpenWhisk command line interface is property configured with:
 
   ```
-  wsk list
+  bx wsk list
   ```
 
   This shows the packages, actions, triggers and rules currently deployed in your OpenWhisk namespace.
@@ -261,7 +261,7 @@ specifically the App Credentials (client ID, client secret and verification toke
   ![](xdocs/apiconnect-api-properties.png)
 
   1. Set the OpenWhisk username and OpenWhisk password.
-  You can find these credentials by running ```wsk property get```
+  You can find these credentials by running ```bx wsk property get```
   and looking at the whisk auth property.
   Everything before the **:** is your username, everything after is the password.
 
@@ -366,7 +366,7 @@ Our app is finally ready to be installed!
 1. To see what's happening behind the scene as Slack calls our OpenWhisk actions, open a new command prompt and run
 
   ```
-  wsk activation poll
+  bx wsk activation poll
   ```
 
   Leave it running. Actions triggered by Slack will show up there
@@ -491,7 +491,7 @@ Please create a pull request with your desired changes.
 
 Polling activations is good start to debug the OpenWhisk action execution. Run
 ```
-wsk activation poll
+bx wsk activation poll
 ```
 and send a message to the bot or use a custom command.
 

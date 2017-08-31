@@ -23,35 +23,35 @@ function usage() {
 
 function install() {
   echo "Adding app registration command"
-  wsk action create slackapp-register actions/slackapp-register.js\
+  bx wsk action create slackapp-register actions/slackapp-register.js\
     -p cloudantUrl $CLOUDANT_url\
     -p cloudantDb $CLOUDANT_db
 
   echo "Adding app event processing"
-  wsk action create slackapp-event actions/slackapp-event.js\
+  bx wsk action create slackapp-event actions/slackapp-event.js\
     -p cloudantUrl $CLOUDANT_url\
     -p cloudantDb $CLOUDANT_db
 
   echo "Adding app command processing"
-  wsk action create slackapp-command actions/slackapp-command.js\
+  bx wsk action create slackapp-command actions/slackapp-command.js\
     -p cloudantUrl $CLOUDANT_url\
     -p cloudantDb $CLOUDANT_db
 }
 
 function uninstall() {
   echo "Removing actions..."
-  wsk action delete slackapp-register
-  wsk action delete slackapp-command
-  wsk action delete slackapp-event
+  bx wsk action delete slackapp-register
+  bx wsk action delete slackapp-command
+  bx wsk action delete slackapp-event
 
   echo "Done"
-  wsk list
+  bx wsk list
 }
 
 function update() {
-  wsk action update slackapp-register actions/slackapp-register.js
-  wsk action update slackapp-event    actions/slackapp-event.js
-  wsk action update slackapp-command  actions/slackapp-command.js
+  bx wsk action update slackapp-register actions/slackapp-register.js
+  bx wsk action update slackapp-event    actions/slackapp-event.js
+  bx wsk action update slackapp-command  actions/slackapp-command.js
 }
 
 function showenv() {
