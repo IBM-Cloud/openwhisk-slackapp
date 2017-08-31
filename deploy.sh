@@ -59,9 +59,12 @@ function uninstall() {
 
 function showurls() {
   OPENWHISK_API_HOST=$(bx wsk property get --apihost | awk '{print $4}')
+  echo OAuth URL:
   echo https://$OPENWHISK_API_HOST/api/v1/web$(bx wsk list | grep 'slackapp/slackapp-register' | awk '{print $1}')
+  echo Command URL:
   echo https://$OPENWHISK_API_HOST/api/v1/web$(bx wsk list | grep 'slackapp/slackapp-command' | awk '{print $1}')
-  echo Event Subscription Request URL: https://$OPENWHISK_API_HOST/api/v1/web$(bx wsk list | grep 'slackapp/slackapp-event' | awk '{print $1}')
+  echo Event Subscription Request URL:
+  echo https://$OPENWHISK_API_HOST/api/v1/web$(bx wsk list | grep 'slackapp/slackapp-event' | awk '{print $1}')
 }
 
 function update() {
