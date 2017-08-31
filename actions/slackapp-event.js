@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-var async = require("async");
-var request = require("request");
+var async = require('async');
+var request = require('request');
 
 /**
  * Gets the details of a given user through the Slack Web API
@@ -25,8 +25,8 @@ var request = require("request");
  */
 function usersInfo(accessToken, userId, callback) {
   request({
-    url: "https://slack.com/api/users.info",
-    method: "POST",
+    url: 'https://slack.com/api/users.info',
+    method: 'POST',
     form: {
       token: accessToken,
       user: userId
@@ -40,7 +40,7 @@ function usersInfo(accessToken, userId, callback) {
     } else if (body && !body.ok) {
       callback(body.error);
     } else {
-      callback("unknown response");
+      callback('unknown response');
     }
   });
 }
@@ -55,8 +55,8 @@ function usersInfo(accessToken, userId, callback) {
  */
 function postMessage(accessToken, channel, text, callback) {
   request({
-    url: "https://slack.com/api/chat.postMessage",
-    method: "POST",
+    url: 'https://slack.com/api/chat.postMessage',
+    method: 'POST',
     form: {
       token: accessToken,
       channel: channel,
@@ -68,21 +68,49 @@ function postMessage(accessToken, channel, text, callback) {
 }
 
 function main(args) {
-  console.log("Processing new bot event from Slack", args);
+  console.log('Processing new bot event from Slack', args);
+
+  // avoid calls from unknown
+  if (args.token !== args.slackVerificationToken) {
+    return {
+      statusCode: 401
+    }
+  }
+  
+  // handle the registration of the Event Subscription callback
+  // Slack will send us an initial POST
+  // https://api.slack.com/events/url_verification
+  if (args.__ow_method === 'post' &&
+      args.type === 'url_verification' &&
+      args.token === args.slackVerificationToken &&
+      args.challenge) {
+    console.log('URL verification from Slack');
+    return {
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: new Buffer(JSON.stringify({
+        challenge: args.challenge
+      })).toString('base64'),
+    };
+  }
 
   // connect to the Cloudant database
-  var cloudant = require("cloudant")({url: args.cloudantUrl});
+  var cloudant = require('cloudant')({url: args.cloudantUrl});
   var botsDb = cloudant.use(args.cloudantDb);
 
   // get the event to process
-  var event = args.event;
+  var event = {
+    team_id: args.team_id,
+    event: args.event
+  };
 
   return new Promise(function(resolve, reject) {
     async.waterfall([
       // find the token for this bot
       function (callback) {
-          console.log("Looking up bot info for team", event.team_id);
-          botsDb.view("bots", "by_team_id", {
+          console.log('Looking up bot info for team', event.team_id);
+          botsDb.view('bots', 'by_team_id', {
             keys: [event.team_id],
             limit: 1,
             include_docs: true
@@ -92,23 +120,23 @@ function main(args) {
             } else if (body.rows && body.rows.length > 0) {
               callback(null, body.rows[0].doc.registration)
             } else {
-              callback("team not found");
+              callback('team not found');
             }
           });
       },
       // grab info about the user
       function (registration, callback) {
-          console.log("Looking up user info for user", event.event.user);
+          console.log('Looking up user info for user', event.event.user);
           usersInfo(registration.bot.bot_access_token, event.event.user, function (err, user) {
             callback(err, registration, user);
           });
       },
       // reply to the message
       function (registration, user, callback) {
-          console.log("Processing message from", user.name);
-          if (event.event.type === "message") {
+          console.log('Processing message from', user.name);
+          if (event.event.type === 'message') {
             postMessage(registration.bot.bot_access_token, event.event.channel,
-              "Hey " + user.real_name + ", you said " + event.event.text,
+              `Hey ${user.real_name}, you said ${event.event.text}`,
               function (err, result) {
                 callback(err);
               });
@@ -117,13 +145,15 @@ function main(args) {
           }
         }
       ],
-      function (err, result) {
+      function (err, response) {
         if (err) {
-          console.log("Error", err);
-          reject(err);
+          console.log('Error', err);
+          reject({
+            body: err
+          });
         } else {
           resolve({
-            status: "Registered"
+            body: response
           });
         }
       }

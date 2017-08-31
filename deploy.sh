@@ -16,42 +16,58 @@
 
 # load configuration variables
 source local.env
+PACKAGE_NAME=slackapp
 
 function usage() {
   echo "Usage: $0 [--install,--uninstall,--update,--env]"
 }
 
 function install() {
-  echo "Adding app registration command"
-  bx wsk action create slackapp-register actions/slackapp-register.js\
+  echo "Creating $PACKAGE_NAME package"
+  bx wsk package create $PACKAGE_NAME\
     -p cloudantUrl $CLOUDANT_url\
-    -p cloudantDb $CLOUDANT_db
+    -p cloudantDb $CLOUDANT_db\
+    -p slackClientId \"$SLACK_CLIENT_ID\"\
+    -p slackClientSecret \"$SLACK_CLIENT_SECRET\"\
+    -p slackVerificationToken \"$SLACK_VERIFICATION_TOKEN\"
+
+  echo "Adding app registration command"
+  bx wsk action create $PACKAGE_NAME/slackapp-register actions/slackapp-register.js\
+    --web true --annotation final true
 
   echo "Adding app event processing"
-  bx wsk action create slackapp-event actions/slackapp-event.js\
-    -p cloudantUrl $CLOUDANT_url\
-    -p cloudantDb $CLOUDANT_db
+  bx wsk action create $PACKAGE_NAME/slackapp-event actions/slackapp-event.js\
+    --web true --annotation final true
 
   echo "Adding app command processing"
-  bx wsk action create slackapp-command actions/slackapp-command.js\
-    -p cloudantUrl $CLOUDANT_url\
-    -p cloudantDb $CLOUDANT_db
+  bx wsk action create $PACKAGE_NAME/slackapp-command actions/slackapp-command.js\
+    --web true --annotation final true
+
+  showurls
 }
 
 function uninstall() {
   echo "Removing actions..."
-  bx wsk action delete slackapp-register
-  bx wsk action delete slackapp-command
-  bx wsk action delete slackapp-event
+  bx wsk action delete $PACKAGE_NAME/slackapp-register
+  bx wsk action delete $PACKAGE_NAME/slackapp-command
+  bx wsk action delete $PACKAGE_NAME/slackapp-event
+  bx wsk package delete $PACKAGE_NAME
 
   echo "Done"
   bx wsk list
 }
 
+function showurls() {
+  OPENWHISK_API_HOST=$(bx wsk property get --apihost | awk '{print $4}')
+  echo https://$OPENWHISK_API_HOST/api/v1/web$(bx wsk list | grep 'slackapp/slackapp-register' | awk '{print $1}')
+  echo https://$OPENWHISK_API_HOST/api/v1/web$(bx wsk list | grep 'slackapp/slackapp-command' | awk '{print $1}')
+  echo Event Subscription Request URL: https://$OPENWHISK_API_HOST/api/v1/web$(bx wsk list | grep 'slackapp/slackapp-event' | awk '{print $1}')
+}
+
 function update() {
-  bx wsk action update slackapp-register actions/slackapp-register.js
-  bx wsk action update slackapp-event    actions/slackapp-event.js
-  bx wsk action update slackapp-command  actions/slackapp-command.js
+  bx wsk action update $PACKAGE_NAME/slackapp-register actions/slackapp-register.js
+  bx wsk action update $PACKAGE_NAME/slackapp-event    actions/slackapp-event.js
+  bx wsk action update $PACKAGE_NAME/slackapp-command  actions/slackapp-command.js
 }
 
 function showenv() {
@@ -71,6 +87,9 @@ update
 ;;
 "--env" )
 showenv
+;;
+"--urls" )
+showurls
 ;;
 * )
 usage
