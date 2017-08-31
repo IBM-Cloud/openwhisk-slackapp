@@ -5,6 +5,8 @@ with IBM Cloud Functions to process these events.
 
 <img src="xdocs/app-created.png" width="200"/><img src="xdocs/team-botchat.png" width="200"/><img src="xdocs/team-customcommandoutput.png" width="200"/>
 
+> A previous version of this sample was using API Connect to expose the actions as HTTP endpoints. With the introduction of web actions in Cloud Functions this was no longer needed. You can browse [this tag](https://github.com/IBM-Bluemix/openwhisk-slackapp/tree/using-api-connect) to view the code using API Connect.
+
 ## Overview
 
 Built using IBM Bluemix, the app uses:
@@ -46,12 +48,13 @@ In this sample, we will:
 To deploy this app, you need:
 * IBM Bluemix account. [Sign up](https://console.ng.bluemix.net/?cm_mmc=GitHubReadMe) for Bluemix, or use an existing account.
 * Slack account
+* The [Bluemix CLI](https://clis.ng.bluemix.net/) and the [Cloud Functions plugin](https://clis.ng.bluemix.net/ui/repository.html#bluemix-plugins)
 
 Your own Slack team is recommended if you want to play with the integration without impacting others.
 
 ## Create the Slack app
 
-1. Proceed to the [new app creation](https://api.slack.com/apps/new)
+1. Proceed to the [new app creation](https://api.slack.com/apps/new) in Slack
 
 1. Type a name for your app, select your Slack team.
 
@@ -59,11 +62,11 @@ Your own Slack team is recommended if you want to play with the integration with
 
    ![](xdocs/app-created.png)
 
-1. View the app credentials
+1. View the App Credentials
 
    ![](xdocs/app-verificationtoken.png)
 
-We will need these credentials in the next steps.
+We will need the Client ID, Client Secret and Verification Token in the next steps.
 
 At this stage, we will put the configuration of the Slack app on hold.
 For the next app configuration steps to work we need to have our actions up and running.
@@ -96,7 +99,7 @@ For the next app configuration steps to work we need to have our actions up and 
 
    ![](xdocs/cloudant-adddesigndoc.png)
 
-### On Linux or macOS
+### Deploy from Linux or macOS
 
 1. Copy the file named **template.local.env** into **local.env**
 
@@ -115,7 +118,7 @@ in `local.env` to the corresponding value (url). Make sure you take the full url
    bx wsk list
    ```
 
-  This shows the packages, actions, triggers and rules currently deployed in your namespace.
+   This shows the packages, actions, triggers and rules currently deployed in your namespace.
 
 1. Create the actions:
 
@@ -144,7 +147,7 @@ in `local.env` to the corresponding value (url). Make sure you take the full url
 
    > Note: the script can also be used to *--uninstall* the Cloud Functions artifacts to *--update* the artifacts if you change the action code, or simply with *--env* to show the environment variables set in **local.env**.
 
-### On Windows
+### Deploy from Windows
 
 1. Copy the file named **template.local.cmd** into **local.cmd**
 
@@ -210,7 +213,7 @@ Our actions are ready. Back to the Slack app configuration.
 
    ![](xdocs/app-enableevents.png)
 
-1. Set the Request URL to the URL of the slack-event web action. The URL will look like `https://openwhisk.ng.bluemix.net/api/v1/web/your-org_your-space/slackapp/slackapp-event`
+1. Set the Request URL to the URL of the `slack-event` web action. The URL should look like `https://openwhisk.ng.bluemix.net/api/v1/web/your-org_your-space/slackapp/slackapp-event`
 
    ![](xdocs/app-challengeaccepted.png)
 
@@ -228,7 +231,7 @@ Our actions are ready. Back to the Slack app configuration.
 
 ### Set the callback URL for authentication
 
-1. Under OAuth and Permissions, add a new Redirect URL. This URL will be called when a user installs your application in his team. It should point to the slackapp-register web action. The URL will look like `https://openwhisk.ng.bluemix.net/api/v1/web/your-org_your-space/slackapp/slackapp-registry`
+1. Under OAuth and Permissions, add a new Redirect URL. This URL will be called when a user installs your application in a team. It should point to the `slackapp-register` web action. The URL should look like `https://openwhisk.ng.bluemix.net/api/v1/web/your-org_your-space/slackapp/slackapp-registry`
 
    ![](xdocs/app-setoauth.png)
 
@@ -238,13 +241,13 @@ Our actions are ready. Back to the Slack app configuration.
 
 1. Under Slash Commands, **Create New Command**
 
-  ![](xdocs/app-newcommand.png)
+   ![](xdocs/app-newcommand.png)
 
 1. Set the values
 
    1. Command: **/myserverlessapp**
 
-   1. Request URL: URL of the slackapp-command web action. The URL will look like `https://openwhisk.ng.bluemix.net/api/v1/web/your-org_your-space/slackapp/slackapp-command`
+   1. Request URL: URL of the `slackapp-command` web action. The URL should look like `https://openwhisk.ng.bluemix.net/api/v1/web/your-org_your-space/slackapp/slackapp-command`
 
    1. Short Description: **A test command**
 
