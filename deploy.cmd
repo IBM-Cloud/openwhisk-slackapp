@@ -18,6 +18,7 @@ rem # limitations under the License.
 
 rem # load configuration variables
 @CALL local.cmd
+set PACKAGE_NAME=slackapp
 
 IF "%1"=="--install" (
   CALL :install
@@ -38,30 +39,34 @@ ECHO Usage: deploy.bat [--install,--uninstall,--update,--env]
 EXIT /B 0
 
 :install
+ECHO Creating %PACKAGE_NAME% package
+bx wsk package create %PACKAGE_NAME% -p cloudantUrl %CLOUDANT_url% -p cloudantDb %CLOUDANT_db% -p slackClientId "%SLACK_CLIENT_ID%" -p slackClientSecret "%SLACK_CLIENT_SECRET%" -p slackVerificationToken "%SLACK_VERIFICATION_TOKEN%"
+
 ECHO Adding app registration command
-bx wsk action create slackapp-register actions\slackapp-register.js -p cloudantUrl %CLOUDANT_url% -p cloudantDb %CLOUDANT_db%
+bx wsk action create %PACKAGE_NAME%/slackapp-register actions\slackapp-register.js --web true --annotation final true
 
 ECHO Adding app event processing
-bx wsk action create slackapp-event actions\slackapp-event.js -p cloudantUrl %CLOUDANT_url% -p cloudantDb %$CLOUDANT_db%
+bx wsk action create %PACKAGE_NAME%/slackapp-event actions\slackapp-event.js --web true --annotation final true
 
 ECHO Adding app command processing
-bx wsk action create slackapp-command actions\slackapp-command.js -p cloudantUrl %CLOUDANT_url% -p cloudantDb %CLOUDANT_db%
+bx wsk action create %PACKAGE_NAME%/slackapp-command actions\slackapp-command.js --web true --annotation final true
 EXIT /B 0
 
 :uninstall
 ECHO Removing actions...
-bx wsk action delete slackapp-register
-bx wsk action delete slackapp-command
-bx wsk action delete slackapp-event
+bx wsk action delete %PACKAGE_NAME%/slackapp-register
+bx wsk action delete %PACKAGE_NAME%/slackapp-command
+bx wsk action delete %PACKAGE_NAME%/slackapp-event
+bx wsk package delete %PACKAGE_NAME%
 
 ECHO Done
 bx wsk list
 EXIT /B 0
 
 :update
-bx wsk action update slackapp-register actions\slackapp-register.js
-bx wsk action update slackapp-event    actions\slackapp-event.js
-bx wsk action update slackapp-command  actions\slackapp-command.js
+bx wsk action update %PACKAGE_NAME%/slackapp-register actions\slackapp-register.js
+bx wsk action update %PACKAGE_NAME%/slackapp-event    actions\slackapp-event.js
+bx wsk action update %PACKAGE_NAME%/slackapp-command  actions\slackapp-command.js
 EXIT /B 0
 
 :showenv
