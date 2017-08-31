@@ -13,36 +13,53 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-var async = require("async");
-var request = require("request");
+var async = require('async');
+var request = require('request');
 
 function main(args) {
-  console.log("Registering new bot from Slack");
+  console.log('Registering new bot from Slack');
   console.log(args);
 
   // connect to the Cloudant database
-  var cloudant = require("cloudant")({url: args.cloudantUrl});
+  var cloudant = require('cloudant')({url: args.cloudantUrl});
   var botsDb = cloudant.use(args.cloudantDb);
 
   return new Promise(function(resolve, reject) {
     async.waterfall([
+      // complete the OAuth flow with Slack
+      (callback) => {
+        request({
+          url: `https://slack.com/api/oauth.access?client_id=${args.slackClientId}&client_secret=${args.slackClientSecret}&code=${args.code}&state=${args.state}`,
+          json: true
+        }, (err, response, registration) => {
+          if (err) {
+            callback(err);
+          } else if (registration && registration.ok) {
+            console.log('Result from Slack', registration);
+            callback(null, registration);
+          } else {
+            console.log(registration);
+            callback('Registration failed');
+          }
+        });
+      },
       // find previous registrations for this team
-      function (callback) {
-        console.log("Looking for previous registrations for the team", args.registration.team_id);
-        botsDb.view("bots", "by_team_id", {
-          keys: [args.registration.team_id],
+      function (registration, callback) {
+        console.log('Looking for previous registrations for the team', registration.team_id);
+        botsDb.view('bots', 'by_team_id', {
+          keys: [registration.team_id],
           include_docs: true
         }, function (err, body) {
           if (err) {
             callback(err);
           } else {
-            callback(null, body.rows);
+            callback(null, registration, body.rows);
           }
         });
       },
       // delete them all
-      function (rows, callback) {
-        console.log("Removing previous registrations for the team", args.registration.team_id, rows);
+      function (registration, rows, callback) {
+        console.log('Removing previous registrations for the team', registration.team_id, rows);
         var toBeDeleted = {
           docs: rows.map(function (row) {
             return {
@@ -57,43 +74,29 @@ function main(args) {
             callback(err);
           });
         } else {
-          callback(null);
+          callback(null, registration);
         }
       },
       // register the bot
-      function (callback) {
-        console.log("Registering the bot for the team", args.registration.team_id);
-        botsDb.insert({
-          _id: args.registration.team_id,
-          type: "bot-registration",
-          registration: args.registration
-        }, function (err, bot) {
-          console.log("Registered bot", bot);
-          callback(err, args.registration);
-        });
-      },
-      // mark as active
       function (registration, callback) {
-        console.log("Marking the bot as active");
-        request({
-          url: "https://slack.com/api/users.setActive",
-          method: "POST",
-          form: {
-            token: registration.bot.bot_access_token
-          }
-        }, function (err, response, body) {
-          if (!err) {
-            console.log("Bot is active!");
-          }
-          callback(err);
+        console.log('Registering the bot for the team', registration.team_id);
+        botsDb.insert({
+          _id: registration.team_id,
+          type: 'bot-registration',
+          registration: registration
+        }, function (err, bot) {
+          console.log('Registered bot', bot);
+          callback(err, registration);
         });
       }
     ], function (err, result) {
       if (err) {
-        reject(err);
+        reject({
+          body: err
+        });
       } else {
         resolve({
-          status: "Registered"
+          body: 'Registration was successful. You can try the command in Slack or send a direct message to the bot.'
         });
       }
     });
