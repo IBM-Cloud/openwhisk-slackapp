@@ -277,12 +277,6 @@ Our app is finally ready to be installed!
 
 1. Select the team where to install the app
 
-   ![](xdocs/app-addtoslack.png)
-
-1. Press **Add to Slack**
-
-1. Select your team if needed
-
 1. Authorize the app
 
    ![](xdocs/app-authorize.png)
