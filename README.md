@@ -269,23 +269,19 @@ Our app is finally ready to be installed!
 
    > Leave it running. Actions triggered by Slack will show up there
 
-1. Go to [Slack Add Button page](https://api.slack.com/docs/slack-button)
+1. Go to **Manage Distribution**
 
-1. Scroll down to the **Add the Slack button** section
+   ![](xdocs/app-managedistribution.png)
 
-1. Pick you app from the dropdown list
+1. Click the **Add the Slack** button
 
-1. **Uncheck incoming webhook**
-
-1. **Check commands and bot**
+1. Select the team where to install the app
 
    ![](xdocs/app-addtoslack.png)
 
 1. Press **Add to Slack**
 
 1. Select your team if needed
-
-   ![](xdocs/app-install.png)
 
 1. Authorize the app
 
