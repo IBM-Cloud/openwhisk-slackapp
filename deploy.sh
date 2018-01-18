@@ -29,7 +29,10 @@ function install() {
     -p cloudantDb $CLOUDANT_db\
     -p slackClientId \"$SLACK_CLIENT_ID\"\
     -p slackClientSecret \"$SLACK_CLIENT_SECRET\"\
-    -p slackVerificationToken \"$SLACK_VERIFICATION_TOKEN\"
+    -p slackVerificationToken \"$SLACK_VERIFICATION_TOKEN\"\
+    -p conversationWorkspace \"$CONVERSATION_WORKSPACE\"\
+    -p conversationUsername \"$CONVERSATION_USERNAME\"\
+    -p conversationPassword \"$CONVERSATION_PASSWORD\"
 
   echo "Adding app registration command"
   bx wsk action create $PACKAGE_NAME/slackapp-register actions/slackapp-register.js\

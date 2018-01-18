@@ -15,6 +15,7 @@
  */
 var async = require('async');
 var request = require('request');
+var Conversation = require('watson-developer-cloud/conversation/v1'); // watson sdk
 
 /**
  * Gets the details of a given user through the Slack Web API
@@ -134,12 +135,62 @@ function main(args) {
       // reply to the message
       function (registration, user, callback) {
           console.log('Processing message from', user.name);
-          if (event.event.type === 'message') {
-            postMessage(registration.bot.bot_access_token, event.event.channel,
-              `Hey ${user.real_name}, you said ${event.event.text}`,
-              function (err, result) {
+          if (event.event.type === 'message' || event.event.type === 'app_mention') {
+            if (event.event.type === 'app_mention') {
+              event.event.text = event.event.text.replace(/<\/?[^>]+(>|$)/g, "");
+            }
+            // connect to Watson Conversation Workspace
+            var conversation = new Conversation({
+              'username': args.conversationUsername,
+              'password': args.conversationPassword,
+              'version_date': '2017-05-26',
+              'url' : 'https://gateway-fra.watsonplatform.net/conversation/api'
+            });
+            // Input data 
+            var payload = {
+              workspace_id: args.conversationWorkspace,
+              context: {},// TODO
+              input: {
+                'text': event.event.text
+              }
+            };
+          
+            // Send the input to the conversation service
+            conversation.message(payload, function(err, data) {
+              if (err) {
                 callback(err);
-              });
+              }
+
+              var response = `Je n'ai pas compris votre demande...`;
+
+              console.log('data')
+              console.log(data);
+              console.log('');
+
+              if (data.output && data.output.text) {
+                response = '';
+                data.output.text.forEach(t => {
+                  if (response != '')
+                    response += '. ';
+                  response += t;
+                });
+              }
+
+              if (data.intents && data.intents[0]) {
+                var intent = data.intents[0];
+                // response += ` I detect intent ${intent.intent} with confidence ${intent.confidence}.`;
+                if (intent.confidence < 0.5)
+                  response = 'Je ne suis pas sûr d\'avoir saisi le sens de votre message...';
+              }
+
+              postMessage(registration.bot.bot_access_token, event.event.channel,
+                response,
+                function (err, result) {
+                  callback(err);
+                });
+            });
+
+
           } else {
             callback(null);
           }
