@@ -14,8 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# load configuration variables
-source local.env
 PACKAGE_NAME=slackapp
 
 function usage() {
@@ -25,14 +23,7 @@ function usage() {
 function install() {
   echo "Creating $PACKAGE_NAME package"
   bx wsk package create $PACKAGE_NAME\
-    -p cloudantUrl $CLOUDANT_url\
-    -p cloudantDb $CLOUDANT_db\
-    -p slackClientId \"$SLACK_CLIENT_ID\"\
-    -p slackClientSecret \"$SLACK_CLIENT_SECRET\"\
-    -p slackVerificationToken \"$SLACK_VERIFICATION_TOKEN\"\
-    -p conversationWorkspace \"$CONVERSATION_WORKSPACE\"\
-    -p conversationUsername \"$CONVERSATION_USERNAME\"\
-    -p conversationPassword \"$CONVERSATION_PASSWORD\"
+    --param-file .params
 
   echo "Adding app registration command"
   bx wsk action create $PACKAGE_NAME/slackapp-register actions/slackapp-register.js\
@@ -74,11 +65,7 @@ function update() {
   bx wsk action update $PACKAGE_NAME/slackapp-register actions/slackapp-register.js
   bx wsk action update $PACKAGE_NAME/slackapp-event    actions/slackapp-event.js
   bx wsk action update $PACKAGE_NAME/slackapp-command  actions/slackapp-command.js
-}
-
-function showenv() {
-  echo CLOUDANT_url=$CLOUDANT_url
-  echo CLOUDANT_db=$CLOUDANT_db
+  bx wsk package update $PACKAGE_NAME --param-file .params
 }
 
 case "$1" in
@@ -90,9 +77,6 @@ uninstall
 ;;
 "--update" )
 update
-;;
-"--env" )
-showenv
 ;;
 "--urls" )
 showurls
