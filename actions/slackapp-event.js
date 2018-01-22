@@ -72,7 +72,7 @@ function main(args) {
   console.log('Processing new bot event from Slack', args);
 
   // avoid calls from unknown
-  if (args.token !== args.slackVerificationToken) {
+  if (args.token !== args.SLACK_VERIFICATION_TOKEN) {
     return {
       statusCode: 401
     }
@@ -83,7 +83,7 @@ function main(args) {
   // https://api.slack.com/events/url_verification
   if (args.__ow_method === 'post' &&
       args.type === 'url_verification' &&
-      args.token === args.slackVerificationToken &&
+      args.token === args.SLACK_VERIFICATION_TOKEN &&
       args.challenge) {
     console.log('URL verification from Slack');
     return {
@@ -97,8 +97,8 @@ function main(args) {
   }
 
   // connect to the Cloudant database
-  var cloudant = require('cloudant')({url: args.cloudantUrl});
-  var botsDb = cloudant.use(args.cloudantDb);
+  var cloudant = require('cloudant')({url: args.CLOUDANT_URL});
+  var botsDb = cloudant.use(args.REGISTRATIONS_DB);
 
   // get the event to process
   var event = {
@@ -141,14 +141,14 @@ function main(args) {
             }
             // connect to Watson Conversation Workspace
             var conversation = new Conversation({
-              'username': args.conversationUsername,
-              'password': args.conversationPassword,
+              'username': args.CONVERSATION_USERNAME,
+              'password': args.CONVERSATION_PASSWORD,
               'version_date': '2017-05-26',
               'url' : 'https://gateway-fra.watsonplatform.net/conversation/api'
             });
             // Input data 
             var payload = {
-              workspace_id: args.conversationWorkspace,
+              workspace_id: args.CONVERSATION_WORKSPACE_ID,
               context: {},// TODO
               input: {
                 'text': event.event.text
