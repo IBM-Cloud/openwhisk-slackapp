@@ -16,6 +16,32 @@
 var async = require('async');
 var request = require('request');
 var Conversation = require('watson-developer-cloud/conversation/v1'); // watson sdk
+var redis = require('redis');
+
+var conversation;
+var redisClient;
+var context = {};
+var botsDb;
+
+function initServices(args) {
+  // connect to the Cloudant database
+  var cloudant = require('cloudant')({url: args.CLOUDANT_URL});
+  console.log("Cloudant connected.");
+  
+  botsDb = cloudant.use(args.REGISTRATIONS_DB);
+  console.log("BotsDb connected.");
+
+  redisClient = redis.createClient(args.REDIS_URL);
+  console.log("Redis connected.");
+
+  conversation = new Conversation({
+    'username': args.CONVERSATION_USERNAME,
+    'password': args.CONVERSATION_PASSWORD,
+    'version_date': '2017-05-26',
+    'url' : 'https://gateway-fra.watsonplatform.net/conversation/api'
+  });
+  console.log("Watson Conversation connected.");
+}
 
 /**
  * Gets the details of a given user through the Slack Web API
@@ -69,7 +95,7 @@ function postMessage(accessToken, channel, text, callback) {
 }
 
 function main(args) {
-  console.log('Processing new bot event from Slack', args);
+  console.log('Processing new bot event from Slack');
 
   // avoid calls from unknown
   if (args.token !== args.SLACK_VERIFICATION_TOKEN) {
@@ -96,9 +122,7 @@ function main(args) {
     };
   }
 
-  // connect to the Cloudant database
-  var cloudant = require('cloudant')({url: args.CLOUDANT_URL});
-  var botsDb = cloudant.use(args.REGISTRATIONS_DB);
+  initServices(args);
 
   // get the event to process
   var event = {
@@ -139,13 +163,6 @@ function main(args) {
             if (event.event.type === 'app_mention') {
               event.event.text = event.event.text.replace(/<\/?[^>]+(>|$)/g, "");
             }
-            // connect to Watson Conversation Workspace
-            var conversation = new Conversation({
-              'username': args.CONVERSATION_USERNAME,
-              'password': args.CONVERSATION_PASSWORD,
-              'version_date': '2017-05-26',
-              'url' : 'https://gateway-fra.watsonplatform.net/conversation/api'
-            });
             // Input data 
             var payload = {
               workspace_id: args.CONVERSATION_WORKSPACE_ID,
@@ -198,6 +215,7 @@ function main(args) {
           });
         } else {
           resolve({
+            statusCode: 200,
             body: response
           });
         }
