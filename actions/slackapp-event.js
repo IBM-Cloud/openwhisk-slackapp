@@ -161,35 +161,29 @@ function main(args) {
                 callback(err);
               }
 
-              var response = `Je n'ai pas compris votre demande...`;
-
-              console.log('data')
-              console.log(data);
-              console.log('');
+              var response = [`Je n'ai pas compris votre demande...`];
 
               if (data.output && data.output.text) {
-                response = '';
-                data.output.text.forEach(t => {
-                  if (response != '')
-                    response += '. ';
-                  response += t;
-                });
+                response = data.output.text;
               }
 
               if (data.intents && data.intents[0]) {
                 var intent = data.intents[0];
                 // response += ` I detect intent ${intent.intent} with confidence ${intent.confidence}.`;
                 if (intent.confidence < 0.5)
-                  response = 'Je ne suis pas sûr d\'avoir saisi le sens de votre message...';
+                  response = ['Je ne suis pas sûr d\'avoir saisi le sens de votre message...'];
               }
 
-              postMessage(registration.bot.bot_access_token, event.event.channel,
-                response,
-                function (err, result) {
-                  callback(err);
-                });
+              response.reverse();
+              response.forEach(text => {
+                if (text != '')
+                  postMessage(registration.bot.bot_access_token, event.event.channel,
+                    text,
+                    function (err, result) {
+                      callback(err);
+                  });
+              });
             });
-
 
           } else {
             callback(null);
