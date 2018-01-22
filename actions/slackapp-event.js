@@ -82,15 +82,48 @@ function getSlackUser(accessToken, userId) {
     }, function (err, response, body) {
       if (body && body.ok) {
         resolve(body.user);
+      } else {
+        if (err) {
+          console.log('Error getSlackUser: ', err);
+        }
+        if (body && !body.ok) {
+          console.log('Error getSlackUser: ', body.error);
+        }
+        reject("Unable to get Slack user.");
       }
-      if (err) {
-        console.log('Error getSlackUser: ', err);
-      } else if (body && !body.ok) {
-        console.log('Error getSlackUser: ', body.error);
-      }
-      reject("Unable to get Slack user.");
     });
   });
+}
+
+function getUserContext(userId) {
+  console.log('get context for user: ', userId);
+  return new Promise(function(resolve, reject) {
+      if (userId)
+        redisClient.get(userId, function(err, value) {
+          if (err) {
+            console.error(err);
+            reject('Error getting context from Redis.');
+          } else {
+            // set global context
+            context = value ? JSON.parse(value) : {};
+            console.log('retrieved context: ', value);
+            resolve();
+          }
+        });
+      else
+        reject("This is not an user.");
+  });
+}
+
+function setUserContext(userId) {
+  console.log('set context for user: ', userId);
+  // Save the context in Redis. Can do this after resolve(response).
+  if (context) {
+      const newContextString = JSON.stringify(context);
+      // Saved context will expire in 600 secs.
+      redisClient.set(userId, newContextString, 'EX', 600);
+      console.log('saved context in Redis: ', newContextString);
+  }
 }
 
 /**
@@ -102,16 +135,21 @@ function getSlackUser(accessToken, userId) {
  * @param callback - function(err, responsebody)
  */
 function postMessage(accessToken, channel, text, callback) {
-  request({
-    url: 'https://slack.com/api/chat.postMessage',
-    method: 'POST',
-    form: {
-      token: accessToken,
-      channel: channel,
-      text: text
-    }
-  }, function (error, response, body) {
-    callback(error, body);
+  return new Promise(function(resolve, reject) {
+    request({
+      url: 'https://slack.com/api/chat.postMessage',
+      method: 'POST',
+      form: {
+        token: accessToken,
+        channel: channel,
+        text: text
+      }
+    }, function (error, response, body) {
+      if (error)
+        reject(error);
+      else
+        resolve(body);
+    });
   });
 }
 
@@ -120,13 +158,11 @@ function postResponseArray(response, event) {
     response.reverse();
     response.forEach(text => {
       if (text != '')
-        postMessage(registration.bot.bot_access_token, event.event.channel,
-          text,
-          function (err, result) {
+        postMessage(registration.bot.bot_access_token, event.event.channel,text)
+          .catch(err => {
             console.log('Error postSlackMessage: ', err);
             reject("Did not end postResponseArray");
-          }
-        );
+          });
     });
     resolve();
   });
@@ -152,20 +188,23 @@ function processSlackEvent(event, user, args) {
         if (err) {
           console.log('Error conversation: ', err);
           reject("Error calling conversation service.");
+        } else {
+          // Default answer
+          var response = [`Je n'ai pas compris votre demande...`];
+          // Watson Conversation answer
+          if (data.output && data.output.text) {
+            response = data.output.text;
+          }
+          // Check confidence
+          if (data.intents && data.intents[0]) {
+            var intent = data.intents[0];
+            if (intent.confidence < 0.5)
+              response = ['Je ne suis pas sûr d\'avoir saisi le sens de votre message...'];
+            else
+              context = data.context;
+          }
+          resolve(response);
         }
-        // Default answer
-        var response = [`Je n'ai pas compris votre demande...`];
-        // Watson Conversation answer
-        if (data.output && data.output.text) {
-          response = data.output.text;
-        }
-        // Check confidence
-        if (data.intents && data.intents[0]) {
-          var intent = data.intents[0];
-          if (intent.confidence < 0.5)
-            response = ['Je ne suis pas sûr d\'avoir saisi le sens de votre message...'];
-        }
-        resolve(response);
       });
     } else {
       reject("Bot wasn't properly called");
@@ -210,19 +249,21 @@ function main(args) {
   };
 
   return getBotInfos(event)
+    .then(() => getUserContext(event.event.user))
     .then(() => getSlackUser(registration.bot.bot_access_token, event.event.user))
     .then(user => processSlackEvent(event, user, args))
     .then(response => postResponseArray(response, event))
     .then(() => {
+      setUserContext(event.event.user);
       return {
         statusCode: 200
       }
     })
     .catch(err => {
       console.log('Error: ',err);
-      reject({
+      return {
         statusCode: 500
-      });
+      };
     });
 
 }
