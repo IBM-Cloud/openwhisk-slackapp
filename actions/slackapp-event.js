@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-var async = require('async');
 var request = require('request');
 var Conversation = require('watson-developer-cloud/conversation/v1'); // watson sdk
 var redis = require('redis');
@@ -22,6 +21,7 @@ var conversation;
 var redisClient;
 var context = {};
 var botsDb;
+var registration;
 
 function initServices(args) {
   // connect to the Cloudant database
@@ -43,32 +43,53 @@ function initServices(args) {
   console.log("Watson Conversation connected.");
 }
 
+function getBotInfos(event) {
+  console.log('Looking up bot info for team ', event.team_id);
+  return new Promise(function(resolve,reject) {
+    botsDb.view('bots', 'by_team_id', {
+      keys: [event.team_id],
+      limit: 1,
+      include_docs: true
+    }, function (err, body) {
+      if (body.rows && body.rows.length > 0) {
+        registration = body.rows[0].doc.registration;
+        resolve();
+      }
+      if (err) {
+        console.log('Error getBotInfos: ', err);
+      }
+      reject("Unable to get bot infos from Cloudant.");
+    });
+  });
+}
+
 /**
  * Gets the details of a given user through the Slack Web API
  *
  * @param accessToken - authorization token
  * @param userId - the id of the user to retrieve info from
- * @param callback - function(err, user)
  */
-function usersInfo(accessToken, userId, callback) {
-  request({
-    url: 'https://slack.com/api/users.info',
-    method: 'POST',
-    form: {
-      token: accessToken,
-      user: userId
-    },
-    json: true
-  }, function (err, response, body) {
-    if (err) {
-      callback(err);
-    } else if (body && body.ok) {
-      callback(null, body.user);
-    } else if (body && !body.ok) {
-      callback(body.error);
-    } else {
-      callback('unknown response');
-    }
+function getSlackUser(accessToken, userId) {
+  return new Promise(function(resolve,reject) {
+    request({
+      url: 'https://slack.com/api/users.info',
+      method: 'POST',
+      form: {
+        token: accessToken,
+        user: userId
+      },
+      json: true
+    }, function (err, response, body) {
+      if (body && body.ok) {
+        resolve(body.user);
+      }
+      if (err) {
+        console.log('Error getSlackUser: ', err);
+      } else if (body && !body.ok) {
+        console.log('Error getSlackUser: ', body.error);
+      }
+      reject("Unable to get Slack user.");
+    });
   });
 }
 
@@ -91,6 +112,64 @@ function postMessage(accessToken, channel, text, callback) {
     }
   }, function (error, response, body) {
     callback(error, body);
+  });
+}
+
+function postResponseArray(response, event) {
+  return new Promise(function(resolve, reject) {
+    response.reverse();
+    response.forEach(text => {
+      if (text != '')
+        postMessage(registration.bot.bot_access_token, event.event.channel,
+          text,
+          function (err, result) {
+            console.log('Error postSlackMessage: ', err);
+            reject("Did not end postResponseArray");
+          }
+        );
+    });
+    resolve();
+  });
+}
+
+function processSlackEvent(event, user, args) {
+  console.log('Processing message from ', user.name);
+  return new Promise(function(resolve, reject) {
+    if (event.event.type === 'message' || event.event.type === 'app_mention') {
+      if (event.event.type === 'app_mention') {
+        event.event.text = event.event.text.replace(/<\/?[^>]+(>|$)/g, "");
+      }
+      // Input data 
+      var payload = {
+        workspace_id: args.CONVERSATION_WORKSPACE_ID,
+        context: context,
+        input: {
+          'text': event.event.text
+        }
+      };
+      // Send the input to the conversation service
+      conversation.message(payload, function(err, data) {
+        if (err) {
+          console.log('Error conversation: ', err);
+          reject("Error calling conversation service.");
+        }
+        // Default answer
+        var response = [`Je n'ai pas compris votre demande...`];
+        // Watson Conversation answer
+        if (data.output && data.output.text) {
+          response = data.output.text;
+        }
+        // Check confidence
+        if (data.intents && data.intents[0]) {
+          var intent = data.intents[0];
+          if (intent.confidence < 0.5)
+            response = ['Je ne suis pas sûr d\'avoir saisi le sens de votre message...'];
+        }
+        resolve(response);
+      });
+    } else {
+      reject("Bot wasn't properly called");
+    }
   });
 }
 
@@ -130,96 +209,20 @@ function main(args) {
     event: args.event
   };
 
-  return new Promise(function(resolve, reject) {
-    async.waterfall([
-      // find the token for this bot
-      function (callback) {
-          console.log('Looking up bot info for team', event.team_id);
-          botsDb.view('bots', 'by_team_id', {
-            keys: [event.team_id],
-            limit: 1,
-            include_docs: true
-          }, function (err, body) {
-            if (err) {
-              callback(err);
-            } else if (body.rows && body.rows.length > 0) {
-              callback(null, body.rows[0].doc.registration)
-            } else {
-              callback('team not found');
-            }
-          });
-      },
-      // grab info about the user
-      function (registration, callback) {
-          console.log('Looking up user info for user', event.event.user);
-          usersInfo(registration.bot.bot_access_token, event.event.user, function (err, user) {
-            callback(err, registration, user);
-          });
-      },
-      // reply to the message
-      function (registration, user, callback) {
-          console.log('Processing message from', user.name);
-          if (event.event.type === 'message' || event.event.type === 'app_mention') {
-            if (event.event.type === 'app_mention') {
-              event.event.text = event.event.text.replace(/<\/?[^>]+(>|$)/g, "");
-            }
-            // Input data 
-            var payload = {
-              workspace_id: args.CONVERSATION_WORKSPACE_ID,
-              context: {},// TODO
-              input: {
-                'text': event.event.text
-              }
-            };
-          
-            // Send the input to the conversation service
-            conversation.message(payload, function(err, data) {
-              if (err) {
-                callback(err);
-              }
-
-              var response = [`Je n'ai pas compris votre demande...`];
-
-              if (data.output && data.output.text) {
-                response = data.output.text;
-              }
-
-              if (data.intents && data.intents[0]) {
-                var intent = data.intents[0];
-                // response += ` I detect intent ${intent.intent} with confidence ${intent.confidence}.`;
-                if (intent.confidence < 0.5)
-                  response = ['Je ne suis pas sûr d\'avoir saisi le sens de votre message...'];
-              }
-
-              response.reverse();
-              response.forEach(text => {
-                if (text != '')
-                  postMessage(registration.bot.bot_access_token, event.event.channel,
-                    text,
-                    function (err, result) {
-                      callback(err);
-                  });
-              });
-            });
-
-          } else {
-            callback(null);
-          }
-        }
-      ],
-      function (err, response) {
-        if (err) {
-          console.log('Error', err);
-          reject({
-            body: err
-          });
-        } else {
-          resolve({
-            statusCode: 200,
-            body: response
-          });
-        }
+  return getBotInfos(event)
+    .then(() => getSlackUser(registration.bot.bot_access_token, event.event.user))
+    .then(user => processSlackEvent(event, user, args))
+    .then(response => postResponseArray(response, event))
+    .then(() => {
+      return {
+        statusCode: 200
       }
-    );
-  });
+    })
+    .catch(err => {
+      console.log('Error: ',err);
+      reject({
+        statusCode: 500
+      });
+    });
+
 }
