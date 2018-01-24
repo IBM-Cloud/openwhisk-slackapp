@@ -21,6 +21,7 @@ var conversation;
 var redisClient;
 var context = {};
 var botsDb;
+var usersDb;
 var registration;
 
 function initServices(args) {
@@ -30,6 +31,9 @@ function initServices(args) {
   
   botsDb = cloudant.use(args.REGISTRATIONS_DB);
   console.log("BotsDb connected.");
+
+  usersDb = cloudant.use(args.USERS_DB);
+  console.log("UsersDb connected.");
 
   redisClient = redis.createClient(args.REDIS_URL);
   console.log("Redis connected.");
@@ -118,12 +122,81 @@ function getUserContext(userId) {
 function setUserContext(userId) {
   console.log('set context for user: ', userId);
   // Save the context in Redis. Can do this after resolve(response).
-  if (context) {
+  if (context && userId) {
       const newContextString = JSON.stringify(context);
       // Saved context will expire in 600 secs.
       redisClient.set(userId, newContextString, 'EX', 600);
       console.log('saved context in Redis: ', newContextString);
+      // Persist some attributes into a long term database
+      getSavedContextRows(userId)// TODO 
+        .then(rows => deleteSavedContext(rows))
+        .then(() => saveContext(userId))
+        .then(user => {
+          console.log('Persisted context: ', user);
+        })
+        .catch(err => {
+          console.log('Error while persisting context into Cloudant: ', err);
+        });
   }
+}
+
+function getSavedContextRows(userId) {
+  console.log("Getting previous context from Cloudant...");
+  return new Promise(function(resolve,reject) {
+    usersDb.view('users', 'by_id', {
+      keys: [userId],
+      include_docs: true
+    }, function (err, body) {
+      console.log("DEBUG 1");
+      if (err) {
+        reject(err);
+      } else {
+        console.log("DEBUG 2 ", body);
+        resolve(body.rows);
+      }
+    });
+  });
+}
+
+function deleteSavedContext(rows) {
+  console.log("Deleting previous context from Cloudant...");
+  return new Promise(function(resolve,reject) {
+    var toBeDeleted = {
+      docs: rows.map(function (row) {
+        return {
+          _id: row.doc._id,
+          _rev: row.doc._rev,
+          _deleted: true
+        }
+      })
+    };
+    if (rows.length > 0) {
+      usersDb.bulk(toBeDeleted, function (err, result) {
+        reject(err);
+      });
+    } else {
+      resolve();
+    }
+  });
+}
+
+function saveContext(userId) {
+  console.log("Saving new context to Cloudant...");
+  return new Promise(function(resolve,reject) {
+    // Choose which attributes to persist in long term database
+    const contextToSave = context;
+    usersDb.insert({
+      _id: userId,
+      type: 'user-context',
+      context: contextToSave
+    }, function (err, user) {
+      if (user) {
+        resolve(user);
+      } else {
+        reject(err);
+      }
+    });
+  });
 }
 
 /**
@@ -213,10 +286,18 @@ function processSlackEvent(event, user, args) {
 }
 
 function main(args) {
-  console.log('Processing new bot event from Slack');
+  console.log('Processing new bot event from Slack : ', args.event.type);
+
+  if (!args.event.user) {
+    console.log('Not allowed (not an user).');
+    return {
+      statusCode: 403
+    }
+  }
 
   // avoid calls from unknown
   if (args.token !== args.SLACK_VERIFICATION_TOKEN) {
+    console.log('Not authenticated.');
     return {
       statusCode: 401
     }
