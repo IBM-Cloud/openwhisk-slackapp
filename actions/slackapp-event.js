@@ -132,7 +132,7 @@ function getUserContext(userId) {
   });
 }
 
-function setUserContext(userId) {
+function setUserContext(userId, args) {
   console.log('set context for user: ', userId);
   // Save the context in Redis. Can do this after resolve(response).
   if (context && userId) {
@@ -143,7 +143,7 @@ function setUserContext(userId) {
       // Persist some attributes into a long term database
       return getSavedContextRows(userId) 
         .then(rows => deleteSavedContext(rows))
-        .then(() => saveContext(userId))
+        .then(() => saveContext(userId, args))
         .catch(err => {
           console.log('Error while persisting context into Cloudant: ', err);
         });
@@ -189,15 +189,16 @@ function deleteSavedContext(rows) {
   });
 }
 
-function saveContext(userId) {
+function saveContext(userId, args) {
   console.log("Saving new context to Cloudant...");
   return new Promise(function(resolve,reject) {
-    // Choose which attributes to persist in long term database
-    var cts = {}; // context to save
-    if (context.first_name) cts.first_name = context.first_name;
-    if (context.last_name) cts.last_name = context.last_name;
-    if (context.username) cts.username = context.username;
-    if (context.is_admin) cts.is_admin = context.is_admin;
+    // Context to save : which attributes to persist in long term database
+    var cts = {};
+    const persist_attr = JSON.parse(args.PERSISTED_ATTR);
+    persist_attr.forEach(attr => {
+      if (context[attr])
+        cts[attr] = context[attr];
+    });
     // Persist it in database
     usersDb.insert({
       _id: userId,
@@ -310,18 +311,18 @@ function postResponseArray(response, event) {
 function main(args) {
   console.log('Processing new bot event from Slack : ', args.event.type);
 
-  if (!args.event.user) {
-    console.log('Not allowed (not an user).');
+  // avoid calls from unknown
+  if (args.token !== args.SLACK_VERIFICATION_TOKEN) {
+    console.log('Unauthorized (token not verified).');
     return {
-      statusCode: 403
+      statusCode: 401
     }
   }
 
-  // avoid calls from unknown
-  if (args.token !== args.SLACK_VERIFICATION_TOKEN) {
-    console.log('Not authenticated.');
+  if (!args.event.user) {
+    console.log('Forbidden (not an user).');
     return {
-      statusCode: 401
+      statusCode: 403
     }
   }
   
@@ -330,7 +331,6 @@ function main(args) {
   // https://api.slack.com/events/url_verification
   if (args.__ow_method === 'post' &&
       args.type === 'url_verification' &&
-      args.token === args.SLACK_VERIFICATION_TOKEN &&
       args.challenge) {
     console.log('URL verification from Slack');
     return {
@@ -343,6 +343,7 @@ function main(args) {
     };
   }
 
+  // initialize cloud services : Watson, Redis, Cloudant
   initServices(args);
 
   // get the event to process
@@ -356,7 +357,7 @@ function main(args) {
     .then(() => getSlackUser(registration.bot.bot_access_token, event.event.user))
     .then(user => processSlackEvent(event, user, args))
     .then(response => postResponseArray(response, event))
-    .then(() => setUserContext(event.event.user))
+    .then(() => setUserContext(event.event.user, args))
     .then(() => {
       console.log('Event processed.');
       return {
