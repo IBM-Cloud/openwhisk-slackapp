@@ -222,8 +222,8 @@ function processSlackEvent(event, user, args) {
         event.event.text = event.event.text.replace(/<\/?[^>]+(>|$)/g, "");
       }
       // Save context informations
-      if (user.first_name) context.first_name = user.first_name;
-      if (user.last_name) context.last_name = user.last_name;
+      if (user.profile && user.profile.first_name) context.first_name = user.profile.first_name;
+      if (user.profile && user.profile.last_name) context.last_name = user.profile.last_name;
       if (user.name) context.username = user.name;
       if (user.is_admin) context.is_admin = user.is_admin;
       // Input data 
