@@ -294,6 +294,8 @@ function postResponseArray(response, event) {
   return new Promise(function(resolve, reject) {
     response.reverse();
     response.forEach(text => {
+      if (event.event.type === 'app_mention' && event.event.user)
+        text = '<@'+event.event.user+'> '+text;
       if (text != '')
         postMessage(registration.bot.bot_access_token, event.event.channel,text)
           .catch(err => {
