@@ -222,7 +222,7 @@ function processSlackEvent(event, user, args) {
       if (event.event.type === 'app_mention') {
         event.event.text = event.event.text.replace(/<\/?[^>]+(>|$)/g, "");
       }
-      // Save context informations
+      // Useful context infos from Slack
       if (user.profile && user.profile.first_name) context.first_name = user.profile.first_name;
       if (user.profile && user.profile.last_name) context.last_name = user.profile.last_name;
       if (user.name) context.username = user.name;
@@ -250,9 +250,9 @@ function processSlackEvent(event, user, args) {
           // Check confidence
           if (data.intents && data.intents[0]) {
             var intent = data.intents[0];
-            if (intent.confidence < 0.5)
+            if (intent.confidence < args.MIN_CONFIDENCE)
               response = ['Je ne suis pas sûr d\'avoir saisi le sens de votre message...'];
-            else
+            else // keep old context in case of too low confidence
               context = data.context;
           }
           resolve(response);
