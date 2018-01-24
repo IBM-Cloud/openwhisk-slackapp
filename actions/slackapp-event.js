@@ -193,14 +193,16 @@ function saveContext(userId) {
   console.log("Saving new context to Cloudant...");
   return new Promise(function(resolve,reject) {
     // Choose which attributes to persist in long term database
-    var contextToSave = {};
-    if (context.first_name)
-      contextToSave.first_name = context.first_name;
+    var cts = {}; // context to save
+    if (context.first_name) cts.first_name = context.first_name;
+    if (context.last_name) cts.last_name = context.last_name;
+    if (context.username) cts.username = context.username;
+    if (context.is_admin) cts.is_admin = context.is_admin;
     // Persist it in database
     usersDb.insert({
       _id: userId,
       type: 'user-context',
-      context: contextToSave
+      context: cts
     }, function (err, user) {
       if (user) {
         console.log("Context persisted into Cloudant DB.");
@@ -209,6 +211,55 @@ function saveContext(userId) {
         reject(err);
       }
     });
+  });
+}
+
+function processSlackEvent(event, user, args) {
+  console.log('Processing message from ', user.name);
+  return new Promise(function(resolve, reject) {
+    if (event.event.type === 'message' || event.event.type === 'app_mention') {
+      if (event.event.type === 'app_mention') {
+        event.event.text = event.event.text.replace(/<\/?[^>]+(>|$)/g, "");
+      }
+      // Save context informations
+      if (user.first_name) context.first_name = user.first_name;
+      if (user.last_name) context.last_name = user.last_name;
+      if (user.name) context.username = user.name;
+      if (user.is_admin) context.is_admin = user.is_admin;
+      // Input data 
+      var payload = {
+        workspace_id: args.CONVERSATION_WORKSPACE_ID,
+        context: context,
+        input: {
+          'text': event.event.text
+        }
+      };
+      // Send the input to the conversation service
+      conversation.message(payload, function(err, data) {
+        if (err) {
+          console.log('Error conversation: ', err);
+          reject("Error calling conversation service.");
+        } else {
+          // Default answer
+          var response = [`Je n'ai pas compris votre demande...`];
+          // Watson Conversation answer
+          if (data.output && data.output.text) {
+            response = data.output.text;
+          }
+          // Check confidence
+          if (data.intents && data.intents[0]) {
+            var intent = data.intents[0];
+            if (intent.confidence < 0.5)
+              response = ['Je ne suis pas sûr d\'avoir saisi le sens de votre message...'];
+            else
+              context = data.context;
+          }
+          resolve(response);
+        }
+      });
+    } else {
+      reject("Bot wasn't properly called");
+    }
   });
 }
 
@@ -251,52 +302,6 @@ function postResponseArray(response, event) {
           });
     });
     resolve();
-  });
-}
-
-function processSlackEvent(event, user, args) {
-  console.log('Processing message from ', user.name);
-  return new Promise(function(resolve, reject) {
-    if (event.event.type === 'message' || event.event.type === 'app_mention') {
-      if (event.event.type === 'app_mention') {
-        event.event.text = event.event.text.replace(/<\/?[^>]+(>|$)/g, "");
-      }
-      // Save context informations
-      if (user.first_name) context.first_name = user.first_name;
-      // Input data 
-      var payload = {
-        workspace_id: args.CONVERSATION_WORKSPACE_ID,
-        context: context,
-        input: {
-          'text': event.event.text
-        }
-      };
-      // Send the input to the conversation service
-      conversation.message(payload, function(err, data) {
-        if (err) {
-          console.log('Error conversation: ', err);
-          reject("Error calling conversation service.");
-        } else {
-          // Default answer
-          var response = [`Je n'ai pas compris votre demande...`];
-          // Watson Conversation answer
-          if (data.output && data.output.text) {
-            response = data.output.text;
-          }
-          // Check confidence
-          if (data.intents && data.intents[0]) {
-            var intent = data.intents[0];
-            if (intent.confidence < 0.5)
-              response = ['Je ne suis pas sûr d\'avoir saisi le sens de votre message...'];
-            else
-              context = data.context;
-          }
-          resolve(response);
-        }
-      });
-    } else {
-      reject("Bot wasn't properly called");
-    }
   });
 }
 
