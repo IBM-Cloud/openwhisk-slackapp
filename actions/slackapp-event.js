@@ -108,10 +108,23 @@ function getUserContext(userId) {
             console.error(err);
             reject('Error getting context from Redis.');
           } else {
-            // set global context
-            context = value ? JSON.parse(value) : {};
-            console.log('retrieved context: ', value);
-            resolve();
+            // if we found a context into redis db
+            if (value) {
+              context = JSON.parse(value);
+              console.log('retrieved context (redis): ', value);
+              resolve();
+            } // else we try to find a persisted context into Cloudant db 
+            else {
+              getSavedContextRows(userId)
+                .then(rows => {
+                  context = (
+                    rows && rows.length > 0 && rows[0].doc.context
+                  ) ? rows[0].doc.context : {};
+                  console.log('retrieved context (cloudant): ', JSON.stringify(context));
+                  resolve();
+                })
+                .catch(err => reject(err));
+            }
           }
         });
       else
@@ -128,12 +141,9 @@ function setUserContext(userId) {
       redisClient.set(userId, newContextString, 'EX', 600);
       console.log('saved context in Redis: ', newContextString);
       // Persist some attributes into a long term database
-      getSavedContextRows(userId)// TODO 
+      return getSavedContextRows(userId) 
         .then(rows => deleteSavedContext(rows))
         .then(() => saveContext(userId))
-        .then(user => {
-          console.log('Persisted context: ', user);
-        })
         .catch(err => {
           console.log('Error while persisting context into Cloudant: ', err);
         });
@@ -147,11 +157,9 @@ function getSavedContextRows(userId) {
       keys: [userId],
       include_docs: true
     }, function (err, body) {
-      console.log("DEBUG 1");
       if (err) {
         reject(err);
       } else {
-        console.log("DEBUG 2 ", body);
         resolve(body.rows);
       }
     });
@@ -172,7 +180,8 @@ function deleteSavedContext(rows) {
     };
     if (rows.length > 0) {
       usersDb.bulk(toBeDeleted, function (err, result) {
-        reject(err);
+        if (err) reject(err);
+        else resolve();
       });
     } else {
       resolve();
@@ -184,13 +193,17 @@ function saveContext(userId) {
   console.log("Saving new context to Cloudant...");
   return new Promise(function(resolve,reject) {
     // Choose which attributes to persist in long term database
-    const contextToSave = context;
+    var contextToSave = {};
+    if (context.first_name)
+      contextToSave.first_name = context.first_name;
+    // Persist it in database
     usersDb.insert({
       _id: userId,
       type: 'user-context',
       context: contextToSave
     }, function (err, user) {
       if (user) {
+        console.log("Context persisted into Cloudant DB.");
         resolve(user);
       } else {
         reject(err);
@@ -248,6 +261,8 @@ function processSlackEvent(event, user, args) {
       if (event.event.type === 'app_mention') {
         event.event.text = event.event.text.replace(/<\/?[^>]+(>|$)/g, "");
       }
+      // Save context informations
+      if (user.first_name) context.first_name = user.first_name;
       // Input data 
       var payload = {
         workspace_id: args.CONVERSATION_WORKSPACE_ID,
@@ -334,8 +349,9 @@ function main(args) {
     .then(() => getSlackUser(registration.bot.bot_access_token, event.event.user))
     .then(user => processSlackEvent(event, user, args))
     .then(response => postResponseArray(response, event))
+    .then(() => setUserContext(event.event.user))
     .then(() => {
-      setUserContext(event.event.user);
+      console.log('Event processed.');
       return {
         statusCode: 200
       }
