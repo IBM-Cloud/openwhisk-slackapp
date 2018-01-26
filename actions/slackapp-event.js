@@ -251,9 +251,12 @@ function processSlackEvent(event, user, args) {
           if (data.intents && data.intents[0]) {
             var intent = data.intents[0];
             if (intent.confidence < args.MIN_CONFIDENCE)
-              response = ['Je ne suis pas sûr d\'avoir saisi le sens de votre message...'];
-            else // keep old context in case of too low confidence
+              // keep old context in case of too low confidence
+              response = [`Je ne suis pas sûr d'avoir compris... essayez de reformuler.`];
+            else {
               context = data.context;
+              // TODO process intent.intent if in .params array 
+            }
           }
           resolve(response);
         }
