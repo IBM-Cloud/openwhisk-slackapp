@@ -25,6 +25,10 @@ function install() {
   bx wsk package create $PACKAGE_NAME\
     --param-file .params
 
+  echo "Adding converse action"
+  bx wsk action create $PACKAGE_NAME/converse actions/converse.js\
+    --web true --annotation final true
+
   echo "Adding app registration command"
   bx wsk action create $PACKAGE_NAME/slackapp-register actions/slackapp-register.js\
     --web true --annotation final true
@@ -42,6 +46,7 @@ function install() {
 
 function uninstall() {
   echo "Removing actions..."
+  bx wsk action delete $PACKAGE_NAME/converse
   bx wsk action delete $PACKAGE_NAME/slackapp-register
   bx wsk action delete $PACKAGE_NAME/slackapp-command
   bx wsk action delete $PACKAGE_NAME/slackapp-event
@@ -53,6 +58,8 @@ function uninstall() {
 
 function showurls() {
   OPENWHISK_API_HOST=$(bx wsk property get --apihost | awk '{print $4}')
+  echo Converse URL:
+  echo https://$OPENWHISK_API_HOST/api/v1/web$(bx wsk list | grep 'slackapp/converse' | awk '{print $1}')
   echo OAuth URL:
   echo https://$OPENWHISK_API_HOST/api/v1/web$(bx wsk list | grep 'slackapp/slackapp-register' | awk '{print $1}')
   echo Command URL:
@@ -62,6 +69,7 @@ function showurls() {
 }
 
 function update() {
+  bx wsk action update $PACKAGE_NAME/converse actions/converse.js
   bx wsk action update $PACKAGE_NAME/slackapp-register actions/slackapp-register.js
   bx wsk action update $PACKAGE_NAME/slackapp-event    actions/slackapp-event.js
   bx wsk action update $PACKAGE_NAME/slackapp-command  actions/slackapp-command.js

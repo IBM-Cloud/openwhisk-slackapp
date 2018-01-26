@@ -26,6 +26,8 @@ var usersDb;
 
 // Data
 var context = {};
+var user_id;
+var user_rev;
 // output
 var response = {
     headers: {
@@ -85,24 +87,31 @@ function getContext(filter, value, persisted_attr, input) {
 /**
  * Persist context from Redis and Cloudant DB
  */
-function setContext(doc, persisted_attr) {
-    return setSessionContext(doc)
-        .then(() => setUserDocument(doc, persisted_attr));
+function setContext(persisted_attr) {
+    return setSessionContext()
+        .then(() => setUserDocument(persisted_attr));
 }
 
 function getUserDocument(filter, value) {
-    console.log("Getting user document from Cloudant (",key,",",value,")");
-    return new Promise(function(resolve, reject) {
+    console.log("Getting user document from Cloudant (",filter,",",value,")");
+    return new Promise(function(resolve,reject) {
         getSavedContextRows(filter, value)
             .then(rows => {
                 if (rows && rows.length > 0) {
+                    console.log("retrieved doc_id: ", rows[0].doc._id);
+                    user_id = rows[0].doc._id;
+                    user_rev = rows[0].doc._rev;
                     resolve(rows[0].doc);
                 } else {
+                    console.log("Creating user in Cloudant db...");
                     usersDb.insert({
                         type: 'user-context',
                         context: {}
                     }, function (err, doc) {
                         if (doc) {
+                            console.log("created doc_id: ", doc.id);
+                            user_id = doc.id;
+                            user_rev = doc.rev;
                             resolve(doc);
                         } else {
                             console.log(err);
@@ -110,15 +119,16 @@ function getUserDocument(filter, value) {
                         }
                     });
                 }
-            });
+            })
+            .catch(err => reject(err));
     });
 }
 
 function getSessionContext(doc, persisted_attr, input) {
-    console.log("Getting context from Redis (", doc._id, ")");
+    console.log("Getting context from Redis (", user_id, ")");
     return new Promise(function(resolve, reject) {
         // Cached context
-        redisClient.get(doc._id, function(err, value) {
+        redisClient.get(user_id, function(err, value) {
             if (err) {
                 console.error(err);
                 reject("Error getting context from Redis.");
@@ -148,21 +158,37 @@ function getSessionContext(doc, persisted_attr, input) {
     });
 }
 
-function setSessionContext(doc) {
-    console.log("Setting context to Redis (",doc._id,")");
+function getSavedContextRows(filter, value) {
+    return new Promise(function(resolve,reject) {
+        usersDb.view('users', filter, {
+            keys: [value],
+            include_docs: true
+        }, function (err, body) {
+            if (err) {
+                console.log('Error: ',err);
+                reject("Error getting saved context from Cloudant.");
+            } else {
+                resolve(body.rows);
+            }
+        });
+    });
+}
+
+function setSessionContext() {
+    console.log("Setting context to Redis (",user_id,")");
     return new Promise(function(resolve, reject) {
         if (context) {
             const newContextString = JSON.stringify(context);
             // Saved context will expire in 600 secs.
-            redisClient.set(doc._id, newContextString, 'EX', 600);
+            redisClient.set(user_id, newContextString, 'EX', 600);
             console.log('saved context (redis): ', newContextString);
         }
         resolve();
     });
 }
 
-function setUserDocument(doc, persisted_attr) {
-    console.log("Saving new context to Cloudant (",doc._id,")");
+function setUserDocument(persisted_attr) {
+    console.log("Saving new context to Cloudant (",user_id,")");
     return new Promise(function(resolve,reject) {
         // Context to save : which attributes to persist in long term database
         var cts = {};
@@ -172,8 +198,8 @@ function setUserDocument(doc, persisted_attr) {
         });
         // Persist it in database
         usersDb.insert({
-            _id: doc._id,
-            _rev: doc._rev,
+            _id: user_id,
+            _rev: user_rev,
             type: 'user-context',
             context: cts
         }, function (err, user) {
@@ -191,7 +217,7 @@ function setUserDocument(doc, persisted_attr) {
 function askWatson(input_text, args) {
     // Input data 
     var payload = {
-        workspace_id: context.WORKSPACE_ID || args.WORKSPACE_ID,
+        workspace_id: (context.WORKSPACE_ID || args.WORKSPACE_ID),
         context: context,
         input: {
             'text': input_text
@@ -270,7 +296,11 @@ function main(args) {
         .then(doc => askWatson(args.text,args))
         .then(output => interpretWatson(output,args))
         .then(watsonsaid => watsonResponse(watsonsaid))
-        .then(response => setContext(doc,persisted_attr))
+        .then(response => setContext(persisted_attr))
+        .then(() => {
+            console.log("Processed: ", response.body.response);
+            return response;
+        })
         .catch( err => {
             console.error('Error: ', err);
             return response;
