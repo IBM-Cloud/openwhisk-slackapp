@@ -1,5 +1,5 @@
 /**
- * Copyright 2016 IBM Corp. All Rights Reserved.
+ * Copyright 2018 IBM Corp. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the “License”);
  * you may not use this file except in compliance with the License.
@@ -13,34 +13,114 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-var async = require('async');
 var request = require('request');
+var botsDb;
+
+var context = {};
+var registration;
+
+function initServices(args) {
+  // connect to the Cloudant database
+  var cloudant = require('cloudant')({url: args.CLOUDANT_URL});
+  console.log("Cloudant connected.");
+  
+  botsDb = cloudant.use(args.REGISTRATIONS_DB);
+  console.log("BotsDb connected.");
+}
+
+function getBotInfos(event) {
+  console.log('Looking up bot info for team ', event.team_id);
+  return new Promise(function(resolve,reject) {
+    botsDb.view('bots', 'by_team_id', {
+      keys: [event.team_id],
+      limit: 1,
+      include_docs: true
+    }, function (err, body) {
+      if (body.rows && body.rows.length > 0) {
+        registration = body.rows[0].doc.registration;
+        resolve(registration);
+      }
+      if (err) {
+        console.log('Error getBotInfos: ', err);
+      }
+      reject("Unable to get bot infos from Cloudant.");
+    });
+  });
+}
 
 /**
  * Gets the details of a given user through the Slack Web API
  *
  * @param accessToken - authorization token
  * @param userId - the id of the user to retrieve info from
- * @param callback - function(err, user)
  */
-function usersInfo(accessToken, userId, callback) {
-  request({
-    url: 'https://slack.com/api/users.info',
-    method: 'POST',
-    form: {
-      token: accessToken,
-      user: userId
-    },
-    json: true
-  }, function (err, response, body) {
-    if (err) {
-      callback(err);
-    } else if (body && body.ok) {
-      callback(null, body.user);
-    } else if (body && !body.ok) {
-      callback(body.error);
+function getSlackUser(accessToken, userId) {
+  return new Promise(function(resolve,reject) {
+    request({
+      url: 'https://slack.com/api/users.info',
+      method: 'POST',
+      form: {
+        token: accessToken,
+        user: userId
+      },
+      json: true
+    }, function (err, response, body) {
+      if (body && body.ok) {
+        resolve(body.user);
+      } else {
+        if (err) {
+          console.log('Error getSlackUser: ', err);
+        }
+        if (body && !body.ok) {
+          console.log('Error getSlackUser: ', body.error);
+        }
+        reject("Unable to get Slack user.");
+      }
+    });
+  });
+}
+
+function processSlackEvent(event, user, args) {
+  console.log('Processing message from ', user.name);
+  return new Promise(function(resolve, reject) {
+    if (event.event.type === 'message' || event.event.type === 'app_mention') {
+      if (event.event.type === 'app_mention') {
+        event.event.text = event.event.text.replace(/<\/?[^>]+(>|$)/g, "");
+      }
+      // Useful context infos from Slack
+      if (user.profile && user.profile.first_name) context.first_name = user.profile.first_name;
+      if (user.profile && user.profile.last_name) context.last_name = user.profile.last_name;
+      if (user.name) context.username = user.name;
+      if (user.is_admin) context.is_admin = user.is_admin;
+      context.slack_id = event.event.user;
+      // Input data
+      var payload = {
+        filter: 'by_slack_id',
+        value: event.event.user,
+        context: context,
+        text: event.event.text
+      };
+      var options = {
+        url: args.CF_API_BASE+'converse',
+        body: payload,
+        headers: {'Content-Type': 'application/json'},
+        json: true
+      };
+      function owCallback(err, response, body) {
+        if (err) {
+            console.log("Error calling converse");
+        } 
+        else if (response.statusCode < 200 || response.statusCode >= 300) {
+            console.log("CF call failed: ", response.statusCode);
+        } 
+        else {
+            console.log("CF call sucess: ", response.statusCode);
+        }
+        resolve(body.response);
+      }
+      request.post(options, owCallback);
     } else {
-      callback('unknown response');
+      reject("Bot wasn't properly called");
     }
   });
 }
@@ -54,26 +134,56 @@ function usersInfo(accessToken, userId, callback) {
  * @param callback - function(err, responsebody)
  */
 function postMessage(accessToken, channel, text, callback) {
-  request({
-    url: 'https://slack.com/api/chat.postMessage',
-    method: 'POST',
-    form: {
-      token: accessToken,
-      channel: channel,
-      text: text
-    }
-  }, function (error, response, body) {
-    callback(error, body);
+  return new Promise(function(resolve, reject) {
+    request({
+      url: 'https://slack.com/api/chat.postMessage',
+      method: 'POST',
+      form: {
+        token: accessToken,
+        channel: channel,
+        text: text
+      }
+    }, function (error, response, body) {
+      if (error)
+        reject(error);
+      else
+        resolve(body);
+    });
+  });
+}
+
+function postResponseArray(response, event) {
+  return new Promise(function(resolve, reject) {
+    response.reverse();
+    response.forEach(text => {
+      if (event.event.type === 'app_mention' && event.event.user)
+        text = '<@'+event.event.user+'> '+text;
+      if (text != '')
+        postMessage(registration.bot.bot_access_token, event.event.channel,text)
+          .catch(err => {
+            console.log('Error postSlackMessage: ', err);
+            reject("Did not end postResponseArray");
+          });
+    });
+    resolve();
   });
 }
 
 function main(args) {
-  console.log('Processing new bot event from Slack', args);
+  console.log('Processing new bot event from Slack : ', args.event.type);
 
   // avoid calls from unknown
-  if (args.token !== args.slackVerificationToken) {
+  if (args.token !== args.SLACK_VERIFICATION_TOKEN) {
+    console.log('Unauthorized (token not verified).');
     return {
       statusCode: 401
+    }
+  }
+
+  if (!args.event.user) {
+    console.log('Forbidden (not an user).');
+    return {
+      statusCode: 403
     }
   }
   
@@ -82,7 +192,6 @@ function main(args) {
   // https://api.slack.com/events/url_verification
   if (args.__ow_method === 'post' &&
       args.type === 'url_verification' &&
-      args.token === args.slackVerificationToken &&
       args.challenge) {
     console.log('URL verification from Slack');
     return {
@@ -95,9 +204,8 @@ function main(args) {
     };
   }
 
-  // connect to the Cloudant database
-  var cloudant = require('cloudant')({url: args.cloudantUrl});
-  var botsDb = cloudant.use(args.cloudantDb);
+  // initialize cloud services : Watson, Redis, Cloudant
+  initServices(args);
 
   // get the event to process
   var event = {
@@ -105,58 +213,15 @@ function main(args) {
     event: args.event
   };
 
-  return new Promise(function(resolve, reject) {
-    async.waterfall([
-      // find the token for this bot
-      function (callback) {
-          console.log('Looking up bot info for team', event.team_id);
-          botsDb.view('bots', 'by_team_id', {
-            keys: [event.team_id],
-            limit: 1,
-            include_docs: true
-          }, function (err, body) {
-            if (err) {
-              callback(err);
-            } else if (body.rows && body.rows.length > 0) {
-              callback(null, body.rows[0].doc.registration)
-            } else {
-              callback('team not found');
-            }
-          });
-      },
-      // grab info about the user
-      function (registration, callback) {
-          console.log('Looking up user info for user', event.event.user);
-          usersInfo(registration.bot.bot_access_token, event.event.user, function (err, user) {
-            callback(err, registration, user);
-          });
-      },
-      // reply to the message
-      function (registration, user, callback) {
-          console.log('Processing message from', user.name);
-          if (event.event.type === 'message') {
-            postMessage(registration.bot.bot_access_token, event.event.channel,
-              `Hey ${user.real_name}, you said ${event.event.text}`,
-              function (err, result) {
-                callback(err);
-              });
-          } else {
-            callback(null);
-          }
-        }
-      ],
-      function (err, response) {
-        if (err) {
-          console.log('Error', err);
-          reject({
-            body: err
-          });
-        } else {
-          resolve({
-            body: response
-          });
-        }
-      }
-    );
-  });
+  return getBotInfos(event)
+    .then(registration => getSlackUser(registration.bot.bot_access_token, event.event.user))
+    .then(user => processSlackEvent(event, user, args))
+    .then(response => postResponseArray(response, event))
+    .catch(err => {
+      console.log('Error: ',err);
+      return {
+        statusCode: 500
+      };
+    });
+
 }

@@ -49,15 +49,15 @@ function main(args) {
   console.log('Processing new bot command from Slack', args);
 
   // avoid calls from unknown
-  if (args.token !== args.slackVerificationToken) {
+  if (args.token !== args.SLACK_VERIFICATION_TOKEN) {
     return {
       statusCode: 401
     }
   }
 
   // connect to the Cloudant database
-  var cloudant = require('cloudant')({url: args.cloudantUrl});
-  var botsDb = cloudant.use(args.cloudantDb);
+  var cloudant = require('cloudant')({url: args.CLOUDANT_URL});
+  var botsDb = cloudant.use(args.REGISTRATIONS_DB);
 
   // the command to process
   var command = {

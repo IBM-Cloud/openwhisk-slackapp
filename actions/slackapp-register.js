@@ -21,15 +21,15 @@ function main(args) {
   console.log(args);
 
   // connect to the Cloudant database
-  var cloudant = require('cloudant')({url: args.cloudantUrl});
-  var botsDb = cloudant.use(args.cloudantDb);
+  var cloudant = require('cloudant')({url: args.CLOUDANT_URL});
+  var botsDb = cloudant.use(args.REGISTRATIONS_DB);
 
   return new Promise(function(resolve, reject) {
     async.waterfall([
       // complete the OAuth flow with Slack
       (callback) => {
         request({
-          url: `https://slack.com/api/oauth.access?client_id=${args.slackClientId}&client_secret=${args.slackClientSecret}&code=${args.code}&state=${args.state}`,
+          url: `https://slack.com/api/oauth.access?client_id=${args.SLACK_CLIENT_ID}&client_secret=${args.SLACK_CLIENT_SECRET}&code=${args.code}&state=${args.state}`,
           json: true
         }, (err, response, registration) => {
           if (err) {
