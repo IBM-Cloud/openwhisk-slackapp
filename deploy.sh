@@ -24,7 +24,7 @@ function usage() {
 
 function install() {
   echo "Creating $PACKAGE_NAME package"
-  bx wsk package create $PACKAGE_NAME\
+  ibmcloud fn package create $PACKAGE_NAME\
     -p cloudantUrl $CLOUDANT_url\
     -p cloudantDb $CLOUDANT_db\
     -p slackClientId \"$SLACK_CLIENT_ID\"\
@@ -32,15 +32,15 @@ function install() {
     -p slackVerificationToken \"$SLACK_VERIFICATION_TOKEN\"
 
   echo "Adding app registration command"
-  bx wsk action create $PACKAGE_NAME/slackapp-register actions/slackapp-register.js\
+  ibmcloud fn action create $PACKAGE_NAME/slackapp-register actions/slackapp-register.js\
     --web true --annotation final true
 
   echo "Adding app event processing"
-  bx wsk action create $PACKAGE_NAME/slackapp-event actions/slackapp-event.js\
+  ibmcloud fn action create $PACKAGE_NAME/slackapp-event actions/slackapp-event.js\
     --web true --annotation final true
 
   echo "Adding app command processing"
-  bx wsk action create $PACKAGE_NAME/slackapp-command actions/slackapp-command.js\
+  ibmcloud fn action create $PACKAGE_NAME/slackapp-command actions/slackapp-command.js\
     --web true --annotation final true
 
   showurls
@@ -48,29 +48,29 @@ function install() {
 
 function uninstall() {
   echo "Removing actions..."
-  bx wsk action delete $PACKAGE_NAME/slackapp-register
-  bx wsk action delete $PACKAGE_NAME/slackapp-command
-  bx wsk action delete $PACKAGE_NAME/slackapp-event
-  bx wsk package delete $PACKAGE_NAME
+  ibmcloud fn action delete $PACKAGE_NAME/slackapp-register
+  ibmcloud fn action delete $PACKAGE_NAME/slackapp-command
+  ibmcloud fn action delete $PACKAGE_NAME/slackapp-event
+  ibmcloud fn package delete $PACKAGE_NAME
 
   echo "Done"
-  bx wsk list
+  ibmcloud fn list
 }
 
 function showurls() {
-  OPENWHISK_API_HOST=$(bx wsk property get --apihost | awk '{print $4}')
+  OPENWHISK_API_HOST=$(ibmcloud fn property get --apihost | awk '{print $4}')
   echo OAuth URL:
-  echo https://$OPENWHISK_API_HOST/api/v1/web$(bx wsk list | grep 'slackapp/slackapp-register' | awk '{print $1}')
+  echo https://$OPENWHISK_API_HOST/api/v1/web$(ibmcloud fn list | grep 'slackapp/slackapp-register' | awk '{print $1}')
   echo Command URL:
-  echo https://$OPENWHISK_API_HOST/api/v1/web$(bx wsk list | grep 'slackapp/slackapp-command' | awk '{print $1}')
+  echo https://$OPENWHISK_API_HOST/api/v1/web$(ibmcloud fn list | grep 'slackapp/slackapp-command' | awk '{print $1}')
   echo Event Subscription Request URL:
-  echo https://$OPENWHISK_API_HOST/api/v1/web$(bx wsk list | grep 'slackapp/slackapp-event' | awk '{print $1}')
+  echo https://$OPENWHISK_API_HOST/api/v1/web$(ibmcloud fn list | grep 'slackapp/slackapp-event' | awk '{print $1}')
 }
 
 function update() {
-  bx wsk action update $PACKAGE_NAME/slackapp-register actions/slackapp-register.js
-  bx wsk action update $PACKAGE_NAME/slackapp-event    actions/slackapp-event.js
-  bx wsk action update $PACKAGE_NAME/slackapp-command  actions/slackapp-command.js
+  ibmcloud fn action update $PACKAGE_NAME/slackapp-register actions/slackapp-register.js
+  ibmcloud fn action update $PACKAGE_NAME/slackapp-event    actions/slackapp-event.js
+  ibmcloud fn action update $PACKAGE_NAME/slackapp-command  actions/slackapp-command.js
 }
 
 function showenv() {

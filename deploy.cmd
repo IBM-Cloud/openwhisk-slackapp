@@ -40,33 +40,33 @@ EXIT /B 0
 
 :install
 ECHO Creating %PACKAGE_NAME% package
-bx wsk package create %PACKAGE_NAME% -p cloudantUrl %CLOUDANT_url% -p cloudantDb %CLOUDANT_db% -p slackClientId "%SLACK_CLIENT_ID%" -p slackClientSecret "%SLACK_CLIENT_SECRET%" -p slackVerificationToken "%SLACK_VERIFICATION_TOKEN%"
+ibmcloud fn package create %PACKAGE_NAME% -p cloudantUrl %CLOUDANT_url% -p cloudantDb %CLOUDANT_db% -p slackClientId "%SLACK_CLIENT_ID%" -p slackClientSecret "%SLACK_CLIENT_SECRET%" -p slackVerificationToken "%SLACK_VERIFICATION_TOKEN%"
 
 ECHO Adding app registration command
-bx wsk action create %PACKAGE_NAME%/slackapp-register actions\slackapp-register.js --web true --annotation final true
+ibmcloud fn action create %PACKAGE_NAME%/slackapp-register actions\slackapp-register.js --web true --annotation final true
 
 ECHO Adding app event processing
-bx wsk action create %PACKAGE_NAME%/slackapp-event actions\slackapp-event.js --web true --annotation final true
+ibmcloud fn action create %PACKAGE_NAME%/slackapp-event actions\slackapp-event.js --web true --annotation final true
 
 ECHO Adding app command processing
-bx wsk action create %PACKAGE_NAME%/slackapp-command actions\slackapp-command.js --web true --annotation final true
+ibmcloud fn action create %PACKAGE_NAME%/slackapp-command actions\slackapp-command.js --web true --annotation final true
 EXIT /B 0
 
 :uninstall
 ECHO Removing actions...
-bx wsk action delete %PACKAGE_NAME%/slackapp-register
-bx wsk action delete %PACKAGE_NAME%/slackapp-command
-bx wsk action delete %PACKAGE_NAME%/slackapp-event
-bx wsk package delete %PACKAGE_NAME%
+ibmcloud fn action delete %PACKAGE_NAME%/slackapp-register
+ibmcloud fn action delete %PACKAGE_NAME%/slackapp-command
+ibmcloud fn action delete %PACKAGE_NAME%/slackapp-event
+ibmcloud fn package delete %PACKAGE_NAME%
 
 ECHO Done
-bx wsk list
+ibmcloud fn list
 EXIT /B 0
 
 :update
-bx wsk action update %PACKAGE_NAME%/slackapp-register actions\slackapp-register.js
-bx wsk action update %PACKAGE_NAME%/slackapp-event    actions\slackapp-event.js
-bx wsk action update %PACKAGE_NAME%/slackapp-command  actions\slackapp-command.js
+ibmcloud fn action update %PACKAGE_NAME%/slackapp-register actions\slackapp-register.js
+ibmcloud fn action update %PACKAGE_NAME%/slackapp-event    actions\slackapp-event.js
+ibmcloud fn action update %PACKAGE_NAME%/slackapp-command  actions\slackapp-command.js
 EXIT /B 0
 
 :showenv

@@ -21,7 +21,7 @@ function main(args) {
   console.log(args);
 
   // connect to the Cloudant database
-  var cloudant = require('cloudant')({url: args.cloudantUrl});
+  var cloudant = require('@cloudant/cloudant')({url: args.cloudantUrl});
   var botsDb = cloudant.use(args.cloudantDb);
 
   return new Promise(function(resolve, reject) {
@@ -29,7 +29,8 @@ function main(args) {
       // complete the OAuth flow with Slack
       (callback) => {
         request({
-          url: `https://slack.com/api/oauth.access?client_id=${args.slackClientId}&client_secret=${args.slackClientSecret}&code=${args.code}&state=${args.state}`,
+          method: 'POST',
+          url: `https://slack.com/api/oauth.v2.access?client_id=${args.slackClientId}&client_secret=${args.slackClientSecret}&code=${args.code}`,
           json: true
         }, (err, response, registration) => {
           if (err) {
@@ -45,9 +46,9 @@ function main(args) {
       },
       // find previous registrations for this team
       function (registration, callback) {
-        console.log('Looking for previous registrations for the team', registration.team_id);
+        console.log('Looking for previous registrations for the team', registration.team.id);
         botsDb.view('bots', 'by_team_id', {
-          keys: [registration.team_id],
+          keys: [registration.team.id],
           include_docs: true
         }, function (err, body) {
           if (err) {
@@ -59,7 +60,7 @@ function main(args) {
       },
       // delete them all
       function (registration, rows, callback) {
-        console.log('Removing previous registrations for the team', registration.team_id, rows);
+        console.log('Removing previous registrations for the team', registration.team.id, rows);
         var toBeDeleted = {
           docs: rows.map(function (row) {
             return {
@@ -79,9 +80,9 @@ function main(args) {
       },
       // register the bot
       function (registration, callback) {
-        console.log('Registering the bot for the team', registration.team_id);
+        console.log('Registering the bot for the team', registration.team.id);
         botsDb.insert({
-          _id: registration.team_id,
+          _id: registration.team.id,
           type: 'bot-registration',
           registration: registration
         }, function (err, bot) {

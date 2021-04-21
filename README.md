@@ -5,11 +5,11 @@ with IBM Cloud Functions to process these events.
 
 <img src="xdocs/app-created.png" width="200"/><img src="xdocs/team-botchat.png" width="200"/><img src="xdocs/team-customcommandoutput.png" width="200"/>
 
-> A previous version of this sample was using API Connect to expose the actions as HTTP endpoints. With the introduction of web actions in Cloud Functions this was no longer needed. You can browse [this tag](https://github.com/IBM-Bluemix/openwhisk-slackapp/tree/using-api-connect) to view the code using API Connect.
+> A previous version of this sample was using API Connect to expose the actions as HTTP endpoints. With the introduction of web actions in Cloud Functions this was no longer needed. You can browse [this tag](https://github.com/IBM-Cloud/openwhisk-slackapp/tree/using-api-connect) to view the code using API Connect.
 
 ## Overview
 
-Built using IBM Bluemix, the app uses:
+Built using IBM Cloud, the app uses:
 * Cloud Functions - to implement the app bot and commands
 * Cloudant - to keep track of app installations
 * and Slack Events API.
@@ -18,7 +18,7 @@ When a user installs the app in a Slack team, or interacts with a bot user, or u
 
 From the perspective of the developer of the Slack app, there is no server involved, only actions in a serverless environment. Furthermore the code is not running if no user interacts with the app and if the app gets popular, it will benefit from IBM Cloud Functions scalability.
 
-![Architecture](https://g.gravizo.com/source/architecture_diagram?https%3A%2F%2Fraw.githubusercontent.com%2FIBM-Bluemix%2Fopenwhisk-slackapp%2Fmaster%2FREADME.md)
+![Architecture](https://g.gravizo.com/source/architecture_diagram?https%3A%2F%2Fraw.githubusercontent.com%2FIBM-Cloud%2Fopenwhisk-slackapp%2Fmaster%2FREADME.md)
 <details>
 <summary></summary>
 architecture_diagram
@@ -46,9 +46,9 @@ In this sample, we will:
 ## Requirements
 
 To deploy this app, you need:
-* IBM Bluemix account. [Sign up](https://console.ng.bluemix.net/?cm_mmc=GitHubReadMe) for Bluemix, or use an existing account.
+* IBM Cloud account. [Sign up](https://cloud.ibm.com/?cm_mmc=GitHubReadMe) for IBM Cloud, or use an existing account.
 * Slack account
-* The [Bluemix CLI](https://clis.ng.bluemix.net/) and the [Cloud Functions plugin](https://clis.ng.bluemix.net/ui/repository.html#bluemix-plugins)
+* The [IBM Cloud CLI](https://cloud.ibm.com/docs/cli/index.html) and the [Cloud Functions plugin](https://cloud.ibm.com/docs/cli?topic=cloud-functions-cli-plugin-functions-cli)
 
 Your own Slack team is recommended if you want to play with the integration without impacting others.
 
@@ -78,16 +78,16 @@ For the next app configuration steps to work we need to have our actions up and 
 * Clone the app to your local environment from your terminal using the following command:
 
    ```
-   git clone https://github.com/IBM-Bluemix/openwhisk-slackapp.git
+   git clone https://github.com/IBM-Cloud/openwhisk-slackapp.git
    ```
 
-* or Download and extract the source code from [this archive](https://github.com/IBM-Bluemix/openwhisk-slackapp/archive/master.zip)
+* or Download and extract the source code from [this archive](https://github.com/IBM-Cloud/openwhisk-slackapp/archive/master.zip)
 
-### Create the Bluemix Cloudant service
+### Create the IBM Cloud Cloudant service
 
-1. Open the IBM Bluemix console
+1. Open the IBM Cloud console
 
-1. Create a Cloudant NoSQL DB service instance named **cloudant-for-slackapp**
+1. Create a Cloudant instance named **cloudant-for-slackapp**, selecting _IAM and legacy credentials_ for the authentication method.
 
 1. Open the Cloudant service dashboard and create a new database named **registrations**
 
@@ -112,10 +112,10 @@ in `local.env` to the corresponding value (url). Make sure you take the full url
 
 1. Set the values for SLACK_CLIENT_ID, SLACK_CLIENT_SECRET, SLACK_VERIFICATION_TOKEN - these are the App Credentials we've seen in the previous steps.
 
-1. Ensure your `bx wsk` command line interface is property configured with:
+1. Ensure your `ibmcloud fn` command line interface is property configured with:
 
    ```
-   bx wsk list
+   ibmcloud fn list
    ```
 
    This shows the packages, actions, triggers and rules currently deployed in your namespace.
@@ -138,11 +138,11 @@ in `local.env` to the corresponding value (url). Make sure you take the full url
    Adding app command processing
    ok: created action slackapp/slackapp-command
    OAuth URL:
-   https://openwhisk.ng.bluemix.net/api/v1/web/<org_space>/slackapp/slackapp-register
+   https://us-south.functions.cloud.ibm.com/api/v1/web/<your-namespace-id>/slackapp/slackapp-register
    Command URL:
-   https://openwhisk.ng.bluemix.net/api/v1/web/<org_space>/slackapp/slackapp-command
+   https://us-south.functions.cloud.ibm.com/api/v1/web/<your-namespace-id>/slackapp/slackapp-command
    Event Subscription Request URL:
-   https://openwhisk.ng.bluemix.net/api/v1/web/<org_space>/slackapp/slackapp-event
+   https://us-south.functions.cloud.ibm.com/api/v1/web/<your-namespace-id>/slackapp/slackapp-event
    ```
 
    > Note: the script can also be used to *--uninstall* the Cloud Functions artifacts to *--update* the artifacts if you change the action code, or simply with *--env* to show the environment variables set in **local.env**.
@@ -160,10 +160,10 @@ in `local.cmd` to the corresponding value (url). Make sure you take the full url
 
 1. Set the values for SLACK_CLIENT_ID, SLACK_CLIENT_SECRET, SLACK_VERIFICATION_TOKEN - these are the App Credentials we've seen in the previous steps.
 
-1. Ensure your `bx wsk` command line interface is property configured with:
+1. Ensure your `ibmcloud fn` command line interface is property configured with:
 
    ```
-   bx wsk list
+   ibmcloud fn list
    ```
 
    This shows the packages, actions, triggers and rules currently deployed in your namespace.
@@ -193,27 +193,13 @@ Our actions are ready. Back to the Slack app configuration.
 
 ## Complete the Slack app configuration
 
-### Add a bot user
-
-1. Go to the **Bot Users** section of your Slack app
-
-   ![](xdocs/app-addbot.png)
-
-1. Click **Add a Bot User**
-
-1. Name your bot, check the option to have your bot always online and click **Add Bot User**
-
-    ![](xdocs/app-botname.png)
-
 ### Add an Event Subscription
 
 1. Go to the **Event Subscriptions** section of your app
 
 1. Enable Events
 
-   ![](xdocs/app-enableevents.png)
-
-1. Set the Request URL to the URL of the `slack-event` web action. The URL should look like `https://openwhisk.ng.bluemix.net/api/v1/web/your-org_your-space/slackapp/slackapp-event`
+1. Set the Request URL to the URL of the `slack-event` web action. The URL should look like `https://us-south.functions.cloud.ibm.com/api/v1/web/your-namespace-id/slackapp/slackapp-event`
 
    ![](xdocs/app-challengeaccepted.png)
 
@@ -231,11 +217,11 @@ Our actions are ready. Back to the Slack app configuration.
 
 ### Set the callback URL for authentication
 
-1. Under OAuth and Permissions, add a new Redirect URL. This URL will be called when a user installs your application in a team. It should point to the `slackapp-register` web action. The URL should look like `https://openwhisk.ng.bluemix.net/api/v1/web/your-org_your-space/slackapp/slackapp-register`
+1. Under OAuth and Permissions, add a new Redirect URL. This URL will be called when a user installs your application in a team. It should point to the `slackapp-register` web action. The URL should look like `https://us-south.functions.cloud.ibm.com/api/v1/web/your-namespace-id/slackapp/slackapp-register`
 
    ![](xdocs/app-setoauth.png)
 
-1. Click **Save Changes**
+1. Click **Save URLs**
 
 ### Create a new command
 
@@ -247,7 +233,7 @@ Our actions are ready. Back to the Slack app configuration.
 
    1. Command: **/myserverlessapp**
 
-   1. Request URL: URL of the `slackapp-command` web action. The URL should look like `https://openwhisk.ng.bluemix.net/api/v1/web/your-org_your-space/slackapp/slackapp-command`
+   1. Request URL: URL of the `slackapp-command` web action. The URL should look like `https://us-south.functions.cloud.ibm.com/api/v1/web/your-namespace-id/slackapp/slackapp-command`
 
    1. Short Description: **A test command**
 
@@ -255,7 +241,12 @@ Our actions are ready. Back to the Slack app configuration.
 
    ![](xdocs/app-commandsettings.png)
 
-1. Save
+1. Save. This automatically creates a bot for the app.
+
+### Give the bot the permission to talk
+
+1. Go to **OAuth & Permissions**.
+1. Under **Scopes** / **Bot Token Scopes**, add the two OAuth Scopes: **chat:write** and **users:read**
 
 Our app is finally ready to be installed!
 
@@ -264,7 +255,7 @@ Our app is finally ready to be installed!
 1. To see what's happening behind the scene as Slack calls our actions, open a new command prompt and run
 
    ```
-   bx wsk activation poll
+   ibmcloud fn activation poll
    ```
 
    > Leave it running. Actions triggered by Slack will show up there
@@ -274,8 +265,6 @@ Our app is finally ready to be installed!
    ![](xdocs/app-managedistribution.png)
 
 1. Click the **Add the Slack** button
-
-1. Select the team where to install the app
 
 1. Authorize the app
 
@@ -335,7 +324,7 @@ Please create a pull request with your desired changes.
 
 Polling activations is good start to debug the action execution. Run
 ```
-bx wsk activation poll
+ibmcloud fn activation poll
 ```
 and send a message to the bot or use a custom command.
 

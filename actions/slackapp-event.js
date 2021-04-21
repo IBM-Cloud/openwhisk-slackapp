@@ -54,6 +54,7 @@ function usersInfo(accessToken, userId, callback) {
  * @param callback - function(err, responsebody)
  */
 function postMessage(accessToken, channel, text, callback) {
+  console.log('Sending message');
   request({
     url: 'https://slack.com/api/chat.postMessage',
     method: 'POST',
@@ -96,8 +97,16 @@ function main(args) {
   }
 
   // connect to the Cloudant database
-  var cloudant = require('cloudant')({url: args.cloudantUrl});
+  var cloudant = require('@cloudant/cloudant')({url: args.cloudantUrl});
   var botsDb = cloudant.use(args.cloudantDb);
+
+  // ignore response from the bot
+  if (args.event.bot_id) {
+    console.log('Ignoring incoming bot message');
+    return {
+      body: "ignored"
+    };
+  }
 
   // get the event to process
   var event = {
@@ -127,15 +136,15 @@ function main(args) {
       // grab info about the user
       function (registration, callback) {
           console.log('Looking up user info for user', event.event.user);
-          usersInfo(registration.bot.bot_access_token, event.event.user, function (err, user) {
+          usersInfo(registration.access_token, event.event.user, function (err, user) {
             callback(err, registration, user);
           });
       },
       // reply to the message
       function (registration, user, callback) {
-          console.log('Processing message from', user.name);
+          console.log('Processing message from', user);
           if (event.event.type === 'message') {
-            postMessage(registration.bot.bot_access_token, event.event.channel,
+            postMessage(registration.access_token, event.event.channel,
               `Hey ${user.real_name}, you said ${event.event.text}`,
               function (err, result) {
                 callback(err);

@@ -56,7 +56,7 @@ function main(args) {
   }
 
   // connect to the Cloudant database
-  var cloudant = require('cloudant')({url: args.cloudantUrl});
+  var cloudant = require('@cloudant/cloudant')({url: args.cloudantUrl});
   var botsDb = cloudant.use(args.cloudantDb);
 
   // the command to process
@@ -91,7 +91,7 @@ function main(args) {
       // grab info about the user
       function (registration, callback) {
           console.log('Looking up user info for user', command.user_id);
-          usersInfo(registration.bot.bot_access_token, command.user_id, function (err, user) {
+          usersInfo(registration.access_token, command.user_id, function (err, user) {
             callback(err, registration, user);
           });
       },
