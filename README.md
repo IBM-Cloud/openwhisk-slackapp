@@ -87,7 +87,7 @@ For the next app configuration steps to work we need to have our actions up and 
 
 1. Open the IBM Cloud console
 
-1. Create a Cloudant instance named **cloudant-for-slackapp**, selecting _IAM and legacy credentials_ for the authentication method.
+1. Create a Cloudant instance named **cloudant-for-slackapp**.
 
 1. Open the Cloudant service dashboard and create a new database named **registrations**
 
@@ -107,8 +107,7 @@ For the next app configuration steps to work we need to have our actions up and 
    cp template.local.env local.env
    ```
 
-1. Get the service credentials for the Cloudant service created above and set CLOUDANT_url
-in `local.env` to the corresponding value (url). Make sure you take the full url including the username and password https://username:password@hostname.cloudant.com.
+1. Get the service credentials for the Cloudant service created above and set CLOUDANT_url, CLOUDANT_apikey in `local.env` to the corresponding value (url and apikey).
 
 1. Set the values for SLACK_CLIENT_ID, SLACK_CLIENT_SECRET, SLACK_VERIFICATION_TOKEN - these are the App Credentials we've seen in the previous steps.
 

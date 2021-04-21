@@ -40,7 +40,7 @@ EXIT /B 0
 
 :install
 ECHO Creating %PACKAGE_NAME% package
-ibmcloud fn package create %PACKAGE_NAME% -p cloudantUrl %CLOUDANT_url% -p cloudantDb %CLOUDANT_db% -p slackClientId "%SLACK_CLIENT_ID%" -p slackClientSecret "%SLACK_CLIENT_SECRET%" -p slackVerificationToken "%SLACK_VERIFICATION_TOKEN%"
+ibmcloud fn package create %PACKAGE_NAME% -p cloudantUrl %CLOUDANT_url% -p cloudantApiKey %CLOUDANT_apikey% -p cloudantDb %CLOUDANT_db% -p slackClientId "%SLACK_CLIENT_ID%" -p slackClientSecret "%SLACK_CLIENT_SECRET%" -p slackVerificationToken "%SLACK_VERIFICATION_TOKEN%"
 
 ECHO Adding app registration command
 ibmcloud fn action create %PACKAGE_NAME%/slackapp-register actions\slackapp-register.js --web true --annotation final true

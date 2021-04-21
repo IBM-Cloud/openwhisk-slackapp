@@ -26,6 +26,7 @@ function install() {
   echo "Creating $PACKAGE_NAME package"
   ibmcloud fn package create $PACKAGE_NAME\
     -p cloudantUrl $CLOUDANT_url\
+    -p cloudantApiKey $CLOUDANT_apikey\
     -p cloudantDb $CLOUDANT_db\
     -p slackClientId \"$SLACK_CLIENT_ID\"\
     -p slackClientSecret \"$SLACK_CLIENT_SECRET\"\

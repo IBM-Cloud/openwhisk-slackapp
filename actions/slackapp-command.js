@@ -56,7 +56,14 @@ function main(args) {
   }
 
   // connect to the Cloudant database
-  var cloudant = require('@cloudant/cloudant')({url: args.cloudantUrl});
+  var cloudant = require('@cloudant/cloudant')({
+    url: args.cloudantUrl,
+    plugins: {
+      iamauth: {
+        iamApiKey: args.cloudantApiKey
+      }
+    }
+  });
   var botsDb = cloudant.use(args.cloudantDb);
 
   // the command to process
